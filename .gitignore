@@ -1,0 +1,24 @@
+node_modules/
+.turbo/
+dist/
+build/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Environment and logs
+.env
+.env.*
+*.log
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

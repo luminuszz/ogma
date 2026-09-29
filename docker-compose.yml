@@ -1,0 +1,5 @@
+name: ogma
+
+volumes:
+  ogma_data:
+    driver: local
