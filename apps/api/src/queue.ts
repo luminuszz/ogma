@@ -5,16 +5,36 @@ const connection = {
   port: parseInt(process.env.REDIS_PORT || '6379', 10),
 };
 
-export const createQueue = (name: string) => {
-  return new Queue(name, { connection });
-};
+export const pageQueue = new Queue('page-processing', { connection });
 
-export const createWorker = (name: string, processor: (job: Job) => Promise<any>) => {
-  return new Worker(name, processor, { connection });
-};
+const WORKER_ML_URL = process.env.WORKER_ML_URL || 'http://localhost:8000';
 
-export const myQueue = createQueue('mainQueue');
-export const myWorker = createWorker('mainQueue', async (job) => {
-  console.log(`Processing job ${job.id}`);
-  return { status: 'done' };
-});
+export const createPageWorker = () => {
+  return new Worker(
+    'page-processing',
+    async (job: Job) => {
+      const { chapterId, url, pageIndex, filename } = job.data;
+
+      const response = await fetch(`${WORKER_ML_URL}/process-page`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          chapterId,
+          pageId: String(pageIndex),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`ML Worker error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result;
+    },
+    {
+      connection,
+      concurrency: 3,
+    }
+  );
+};

@@ -47,15 +47,15 @@ describe('API & Queue Tests', () => {
     expect(res.text).toBe('hello world');
   });
 
-  it('should initialize bullmq queue', async () => {
-    const { myQueue } = await import('./queue.js');
-    expect(myQueue).toBeDefined();
-    expect(myQueue.name).toBe('mainQueue');
+  it('should initialize bullmq pageQueue', async () => {
+    const { pageQueue } = await import('./queue.js');
+    expect(pageQueue).toBeDefined();
+    expect(pageQueue.name).toBe('page-processing');
   });
 
-  it('should initialize bullmq worker', async () => {
-    const { myWorker } = await import('./queue.js');
-    expect(myWorker).toBeDefined();
-    expect(myWorker.name).toBe('mainQueue');
+  it('should export createPageWorker factory', async () => {
+    const { createPageWorker } = await import('./queue.js');
+    expect(createPageWorker).toBeDefined();
+    expect(typeof createPageWorker).toBe('function');
   });
 });
