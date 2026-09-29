@@ -1,60 +1,90 @@
 import pytest
 from fastapi.testclient import TestClient
 import os
+import numpy as np
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-# We need to set DATA_DIR before importing main if it's evaluated on module load,
-# but main might just use a constant. Let's patch it in the test.
 from main import app
+from ml.vision import VisionResult, DetectedText, BoundingBox
 
 client = TestClient(app)
 
-def test_process_page(tmp_path):
-    # Patch the DATA_DIR in main to use our tmp_path
-    with patch("main.DATA_DIR", tmp_path):
-        payload = {
-            "url": "http://example.com/image.png",
+
+def test_process_page_full_pipeline(tmp_path):
+    """Test the full pipeline with mocked ML components."""
+    fake_image = np.ones((100, 200, 3), dtype=np.uint8) * 255
+    fake_vision_result = VisionResult(
+        inpainted_image=fake_image,
+        detected_texts=[
+            DetectedText(
+                bbox=BoundingBox(x1=10, y1=10, x2=90, y2=50),
+                text="Hello",
+                confidence=0.95,
+            )
+        ],
+    )
+
+    with patch("main.DATA_DIR", tmp_path), \
+         patch("main.httpx.stream") as mock_stream, \
+         patch("ml.vision.run_vision_pipeline", return_value=fake_vision_result), \
+         patch("main.get_detector", return_value=MagicMock()), \
+         patch("main.get_extractor", return_value=MagicMock()), \
+         patch("ml.translation.translate_text", return_value="Olá"):
+
+        mock_ctx = MagicMock()
+        mock_stream.return_value = mock_ctx
+        mock_response = MagicMock()
+        mock_ctx.__enter__.return_value = mock_response
+        mock_response.raise_for_status.return_value = None
+        mock_response.iter_bytes.return_value = [b"fake_image"]
+
+        response = client.post("/process-page", json={
+            "url": "http://example.com/page.png",
             "chapterId": "ch123",
-            "pageId": "pg456"
-        }
-        
-        # Mock httpx.stream
-        with patch("main.httpx.stream") as mock_stream:
-            mock_context_manager = MagicMock()
-            mock_stream.return_value = mock_context_manager
-            
-            mock_response = MagicMock()
-            mock_context_manager.__enter__.return_value = mock_response
-            
-            # Mock the methods on the response
-            mock_response.raise_for_status.return_value = None
-            mock_response.iter_bytes.return_value = [b"fake", b"_", b"image", b"_", b"data"]
-            
-            response = client.post("/process-page", json=payload)
-            
-            assert response.status_code == 200
-            expected_path = str(tmp_path / "ch123" / "pg456.png")
-            assert response.json() == {
-                "status": "ok",
-                "path": expected_path
-            }
-            
-            # Check if file was written correctly
-            saved_file = tmp_path / "ch123" / "pg456.png"
-            assert saved_file.exists()
-            assert saved_file.read_bytes() == b"fake_image_data"
+            "pageId": "pg1",
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "ch123" in data["path"]
 
 
 def test_process_page_path_traversal(tmp_path):
+    """Path traversal should be blocked."""
     with patch("main.DATA_DIR", tmp_path):
-        payload = {
+        response = client.post("/process-page", json={
             "url": "http://example.com/image.png",
             "chapterId": "../ch123",
-            "pageId": "pg456"
-        }
-        
-        response = client.post("/process-page", json=payload)
-        
+            "pageId": "pg456",
+        })
+
         assert response.status_code == 400
         assert "Invalid chapterId or pageId" in response.json()["detail"]
+
+
+def test_process_page_ml_failure_fallback(tmp_path):
+    """When ML pipeline fails, should fallback to raw image."""
+    with patch("main.DATA_DIR", tmp_path), \
+         patch("main.httpx.stream") as mock_stream, \
+         patch("ml.vision.run_vision_pipeline", side_effect=RuntimeError("GPU OOM")), \
+         patch("main.get_detector", return_value=MagicMock()), \
+         patch("main.get_extractor", return_value=MagicMock()):
+
+        mock_ctx = MagicMock()
+        mock_stream.return_value = mock_ctx
+        mock_response = MagicMock()
+        mock_ctx.__enter__.return_value = mock_response
+        mock_response.raise_for_status.return_value = None
+        mock_response.iter_bytes.return_value = [b"raw_image"]
+
+        response = client.post("/process-page", json={
+            "url": "http://example.com/page.png",
+            "chapterId": "ch999",
+            "pageId": "pg1",
+        })
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok_no_ml"
