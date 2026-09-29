@@ -44,3 +44,17 @@ def test_process_page(tmp_path):
             saved_file = tmp_path / "ch123" / "pg456.png"
             assert saved_file.exists()
             assert saved_file.read_bytes() == b"fake_image_data"
+
+
+def test_process_page_path_traversal(tmp_path):
+    with patch("main.DATA_DIR", tmp_path):
+        payload = {
+            "url": "http://example.com/image.png",
+            "chapterId": "../ch123",
+            "pageId": "pg456"
+        }
+        
+        response = client.post("/process-page", json=payload)
+        
+        assert response.status_code == 400
+        assert "Invalid chapterId or pageId" in response.json()["detail"]

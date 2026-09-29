@@ -22,11 +22,17 @@ class ProcessPageResponse(BaseModel):
 def process_page(request: ProcessPageRequest):
     # Determine save path
     chapter_dir = DATA_DIR / request.chapterId
-    
-    # Create chapter directory if it doesn't exist
-    chapter_dir.mkdir(parents=True, exist_ok=True)
-    
     file_path = chapter_dir / f"{request.pageId}.png"
+    
+    # Path traversal protection
+    try:
+        if not file_path.resolve().is_relative_to(DATA_DIR.resolve()):
+            raise HTTPException(status_code=400, detail="Invalid chapterId or pageId")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid chapterId or pageId")
+        
+    # Create chapter directory if it doesn't exist
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Download the image
     try:
@@ -36,9 +42,7 @@ def process_page(request: ProcessPageRequest):
                 for chunk in response.iter_bytes(chunk_size=8192):
                     f.write(chunk)
                 
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=400, detail=f"Failed to download image: {str(e)}")
-    except httpx.HTTPStatusError as e:
+    except httpx.HTTPError as e:
         raise HTTPException(status_code=400, detail=f"Failed to download image: {str(e)}")
         
     return ProcessPageResponse(
