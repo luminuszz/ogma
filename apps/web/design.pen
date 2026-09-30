@@ -1,0 +1,234 @@
+{
+  "version": "2.20",
+  "children": [
+    {
+      "type": "frame",
+      "id": "d8udmL",
+      "x": 0,
+      "y": 0,
+      "name": "Manga Reader App",
+      "clip": true,
+      "width": 1440,
+      "height": 1024,
+      "fill": "$bg-base",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "kmZWi",
+          "name": "Top Bar",
+          "width": "fill_container",
+          "height": 72,
+          "fill": "$bg-panel",
+          "padding": [
+            0,
+            32
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "SN8nv",
+              "name": "Top Left",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "F6oWxJ",
+                  "name": "Back",
+                  "width": 24,
+                  "height": 24,
+                  "icon": "arrow-left",
+                  "library": "lucide",
+                  "fill": "$text-secondary"
+                },
+                {
+                  "type": "text",
+                  "id": "ivD99",
+                  "name": "Title",
+                  "fill": "$text-primary",
+                  "content": "Ogma - Chapter 12: The Beginning",
+                  "fontFamily": "$font-main",
+                  "fontSize": 20,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "z7R4E",
+              "name": "Top Right",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "GyW1X",
+                  "name": "Settings",
+                  "width": 24,
+                  "height": 24,
+                  "icon": "settings",
+                  "library": "lucide",
+                  "fill": "$text-secondary"
+                },
+                {
+                  "type": "icon",
+                  "id": "Bdz7W",
+                  "name": "Menu",
+                  "width": 24,
+                  "height": 24,
+                  "icon": "menu",
+                  "library": "lucide",
+                  "fill": "$text-secondary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "jOe66",
+          "name": "Manga Viewport",
+          "width": "fill_container",
+          "height": "fill_container",
+          "padding": 24,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "SQevH",
+              "name": "Manga Page",
+              "metadata": {
+                "type": "unsplash",
+                "username": "introspectivedsgn",
+                "link": "https://unsplash.com/@introspectivedsgn",
+                "author": "Erik Mclean"
+              },
+              "clip": true,
+              "width": 600,
+              "height": 850,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "https://images.unsplash.com/photo-1612036781197-ed37e5d975f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3OTA3ODg2Njd8&ixlib=rb-4.1.0&q=80&w=1080",
+                "mode": "cover"
+              },
+              "cornerRadius": 8
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "apJNC",
+          "name": "Bottom Bar",
+          "width": "fill_container",
+          "height": 88,
+          "fill": "$bg-panel",
+          "padding": [
+            0,
+            64
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "syk2q",
+              "name": "Prev",
+              "width": 32,
+              "height": 32,
+              "icon": "chevron-left",
+              "library": "lucide",
+              "fill": "$text-secondary"
+            },
+            {
+              "type": "frame",
+              "id": "QECiY",
+              "name": "Progress Container",
+              "width": 600,
+              "layout": "vertical",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pSygX",
+                  "name": "Page Text",
+                  "fill": "$text-secondary",
+                  "content": "Page 15 / 42",
+                  "fontFamily": "$font-main",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "xdziR",
+                  "name": "Progress Bar Track",
+                  "width": "fill_container",
+                  "height": 6,
+                  "fill": "#333333",
+                  "cornerRadius": 3,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "tCDkH",
+                      "layoutPosition": "absolute",
+                      "x": 0,
+                      "y": 0,
+                      "name": "Progress Bar Fill",
+                      "width": 200,
+                      "height": 6,
+                      "fill": "$accent",
+                      "cornerRadius": 3
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "icon",
+              "id": "WbKGs",
+              "name": "Next",
+              "width": 32,
+              "height": 32,
+              "icon": "chevron-right",
+              "library": "lucide",
+              "fill": "$accent"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "bg-base": {
+      "type": "color",
+      "value": "#121212"
+    },
+    "bg-panel": {
+      "type": "color",
+      "value": "#1A1A1A"
+    },
+    "accent": {
+      "type": "color",
+      "value": "#9D4EDD"
+    },
+    "text-primary": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "text-secondary": {
+      "type": "color",
+      "value": "#A0A0A0"
+    },
+    "font-main": {
+      "type": "string",
+      "value": "Inter"
+    }
+  },
+  "fileToken": "3f3ea440-af82-44d2-8b84-c5a761dbec3d"
+}

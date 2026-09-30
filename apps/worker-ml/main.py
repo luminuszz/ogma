@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import httpx
-import os
 import cv2
 from pathlib import Path
 
@@ -76,6 +75,7 @@ def process_page(request: ProcessPageRequest):
     try:
         result = run_vision_pipeline(str(raw_path), get_detector(), get_extractor())
     except Exception as e:
+        print(f"ML Pipeline error: {e}")
         # If ML pipeline fails, just save the raw image
         import shutil
         shutil.copy2(raw_path, final_path)
@@ -88,7 +88,8 @@ def process_page(request: ProcessPageRequest):
         try:
             translated = translate_text(dt.text, ollama_url=OLLAMA_URL, model=OLLAMA_MODEL)
             translated_pairs.append((dt.bbox, translated))
-        except Exception:
+        except Exception as e:
+            print(f"Translation error: {e}")
             # If translation fails for a balloon, use original text
             translated_pairs.append((dt.bbox, dt.text))
 
