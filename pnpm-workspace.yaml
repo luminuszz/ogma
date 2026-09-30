@@ -4,5 +4,3 @@ allowBuilds:
   '@parcel/watcher': true
   esbuild: true
   msgpackr-extract: true
-minimumReleaseAgeExclude:
-  - bullmq@6.3.10
