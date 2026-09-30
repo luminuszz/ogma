@@ -10,6 +10,21 @@ const createServer = Effect.sync(() => {
   // Serve static files from /data
   app.use('/data', express.static('/data'));
 
+  // Get manga chapter list
+  app.get('/api/manga/:mangaId/chapters', async (req, res) => {
+    const { mangaId } = req.params;
+    try {
+      const { fetchMangaFeed } = await import('./mangadex.ts');
+      const chapters = await Effect.runPromise(fetchMangaFeed(mangaId));
+      res.json({ chapters });
+    } catch (err) {
+      res.status(500).json({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+  });
+
   // Queue a chapter for processing
   app.post('/api/manga/:chapterId', async (req, res) => {
     const { chapterId } = req.params;

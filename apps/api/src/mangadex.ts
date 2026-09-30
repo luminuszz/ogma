@@ -38,3 +38,29 @@ export const fetchChapterPages = (chapterId: string): Effect.Effect<PageInfo[], 
     },
     catch: (err) => new Error(`Failed to fetch chapter pages: ${err}`),
   });
+
+export interface MangaChapter {
+  id: string;
+  chapter: string | null;
+  title: string | null;
+}
+
+export const fetchMangaFeed = (mangaId: string): Effect.Effect<MangaChapter[], Error> =>
+  Effect.tryPromise({
+    try: async () => {
+      const res = await fetch(`https://api.mangadex.org/manga/${mangaId}/feed?order[chapter]=desc&limit=100&translatedLanguage[]=en`);
+
+      if (!res.ok) {
+        throw new Error(`MangaDex API error: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+
+      return data.data.map((item: any) => ({
+        id: item.id,
+        chapter: item.attributes.chapter,
+        title: item.attributes.title,
+      }));
+    },
+    catch: (err) => new Error(`Failed to fetch manga chapters: ${err}`),
+  });
