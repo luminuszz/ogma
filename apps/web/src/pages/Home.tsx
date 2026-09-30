@@ -95,8 +95,13 @@ export function Home() {
             {chapters.map((ch: any, idx: number) => (
               <div key={ch.id} className="flex items-center justify-between p-3 bg-base rounded-lg border border-panel-light hover:border-primary/50 transition-colors">
                 <div>
-                  <div className="font-medium text-foreground">
+                  <div className="font-medium text-foreground flex items-center gap-2">
                     Chapter {ch.chapter || '?'}
+                    {ch.language && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-panel-light text-foreground-muted border border-panel-light/50">
+                        {ch.language}
+                      </span>
+                    )}
                   </div>
                   {ch.title && <div className="text-sm text-foreground-muted">{ch.title}</div>}
                 </div>

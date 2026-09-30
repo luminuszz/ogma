@@ -43,12 +43,14 @@ export interface MangaChapter {
   id: string;
   chapter: string | null;
   title: string | null;
+  language: string | null;
 }
 
 export const fetchMangaFeed = (mangaId: string): Effect.Effect<MangaChapter[], Error> =>
   Effect.tryPromise({
     try: async () => {
-      const res = await fetch(`https://api.mangadex.org/manga/${mangaId}/feed?order[chapter]=desc&limit=100&translatedLanguage[]=en`);
+      const langs = 'translatedLanguage[]=en&translatedLanguage[]=pt-br&translatedLanguage[]=pt&translatedLanguage[]=es-la&translatedLanguage[]=es';
+      const res = await fetch(`https://api.mangadex.org/manga/${mangaId}/feed?order[chapter]=desc&limit=100&${langs}`);
 
       if (!res.ok) {
         throw new Error(`MangaDex API error: ${res.status} ${res.statusText}`);
@@ -60,6 +62,7 @@ export const fetchMangaFeed = (mangaId: string): Effect.Effect<MangaChapter[], E
         id: item.id,
         chapter: item.attributes.chapter,
         title: item.attributes.title,
+        language: item.attributes.translatedLanguage,
       }));
     },
     catch: (err) => new Error(`Failed to fetch manga chapters: ${err}`),
