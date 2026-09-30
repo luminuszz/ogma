@@ -1,0 +1,26 @@
+node_modules/
+.turbo/
+dist/
+build/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Docker
+apps/worker-ml/.venv/
+
+# Git
+.git/
+
+# Dev
+.env
+.env.*
+*.log
+.DS_Store

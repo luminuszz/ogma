@@ -8,16 +8,15 @@ FROM node:24-alpine AS installer
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# First copy pruned lockfile and package.json's to install dependencies
+# Install dependencies from pruned lockfile
 COPY --from=builder /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 
-# Then copy the rest of the pruned source code
+# Copy pruned source
 COPY --from=builder /app/out/full/ .
-
-RUN pnpm add -g tsx
 
 WORKDIR /app/apps/api
 EXPOSE 3000
 
-CMD ["tsx", "src/index.ts"]
+# Node 24 supports TypeScript natively via --experimental-strip-types
+CMD ["node", "--experimental-strip-types", "src/index.ts"]
