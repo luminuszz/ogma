@@ -1,17 +1,17 @@
 export type ChapterStatus = {
-  status: 'idle' | 'queued' | 'downloading' | 'completed' | 'error';
-  progress?: number;
+  status: 'not_found' | 'processing' | 'done' | 'error';
   total?: number;
-  pages?: string[];
+  completed?: number;
+  failed?: number;
   error?: string;
+  chapterId?: string;
 };
 
 export const api = {
   startDownload: async (chapterId: string): Promise<void> => {
-    const res = await fetch(`/api/download`, {
+    const res = await fetch(`/api/manga/${chapterId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chapterId }),
     });
     if (!res.ok) {
       throw new Error('Failed to start download');
@@ -19,7 +19,7 @@ export const api = {
   },
 
   getStatus: async (chapterId: string): Promise<ChapterStatus> => {
-    const res = await fetch(`/api/status/${chapterId}`);
+    const res = await fetch(`/api/manga/${chapterId}/status`);
     if (!res.ok) {
       throw new Error('Failed to get status');
     }
