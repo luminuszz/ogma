@@ -1,6 +1,6 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine
 WORKDIR /app
-RUN npm install -g pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy workspace manifests to leverage Docker layer cache
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -8,14 +8,11 @@ COPY apps/web/package.json ./apps/web/
 
 RUN pnpm install --frozen-lockfile --filter web
 
-# Copy source and build
+# Copy source
 COPY apps/web ./apps/web
-RUN pnpm --filter web build
+WORKDIR /app/apps/web
 
-# --- Production stage ---
-FROM nginx:alpine
-COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+EXPOSE 5173
 
-# nginx reverse proxy config (present in build context root = apps/web)
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+# Run Vite dev server exposed to the network
+CMD ["pnpm", "dev", "--host"]

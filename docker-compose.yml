@@ -45,7 +45,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     ports:
-      - "3030:80"
+      - "3030:5173"
     depends_on:
       - api
     restart: unless-stopped
