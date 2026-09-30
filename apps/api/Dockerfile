@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 
 WORKDIR /app/apps/api
-EXPOSE 3000
+EXPOSE 3001
 
 # Node 24 supports TypeScript natively via --experimental-strip-types
 CMD ["node", "--experimental-strip-types", "src/index.ts"]

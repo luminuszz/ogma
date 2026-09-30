@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 120_000,
   retries: 1,
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    baseURL: process.env.BASE_URL || 'http://localhost:3030',
     headless: true,
     screenshot: 'only-on-failure',
   },
