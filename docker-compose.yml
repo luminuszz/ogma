@@ -10,11 +10,11 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     ports:
-      - "3001:3001"
+      - "3031:3031"
     environment:
       - REDIS_URL=${REDIS_URL}
       - WORKER_ML_URL=http://worker-ml:8000
-      - PORT=3001
+      - PORT=3031
     volumes:
       - ogma_data:/data
     restart: unless-stopped
