@@ -12,8 +12,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_URL=${REDIS_URL}
       - WORKER_ML_URL=http://worker-ml:8000
       - PORT=3000
     volumes:

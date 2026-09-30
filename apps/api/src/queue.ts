@@ -1,11 +1,19 @@
 import { Queue, Worker, Job } from 'bullmq';
+import IORedis from 'ioredis';
 
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-};
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-export const pageQueue = new Queue('page-processing', { connection });
+// BullMQ requires enableReadyCheck: false and maxRetriesPerRequest: null
+// when providing a raw IORedis instance.
+export const createRedisConnection = () =>
+  new IORedis(REDIS_URL, {
+    enableReadyCheck: false,
+    maxRetriesPerRequest: null,
+  });
+
+export const pageQueue = new Queue('page-processing', {
+  connection: createRedisConnection(),
+});
 
 const WORKER_ML_URL = process.env.WORKER_ML_URL || 'http://localhost:8000';
 
@@ -13,7 +21,7 @@ export const createPageWorker = () => {
   return new Worker(
     'page-processing',
     async (job: Job) => {
-      const { chapterId, url, pageIndex, filename } = job.data;
+      const { chapterId, url, pageIndex } = job.data;
 
       const response = await fetch(`${WORKER_ML_URL}/process-page`, {
         method: 'POST',
@@ -29,11 +37,10 @@ export const createPageWorker = () => {
         throw new Error(`ML Worker error: ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json();
-      return result;
+      return response.json();
     },
     {
-      connection,
+      connection: createRedisConnection(),
       concurrency: 3,
     }
   );

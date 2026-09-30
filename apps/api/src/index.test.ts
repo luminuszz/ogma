@@ -6,16 +6,27 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 
-// Mock Redis so tests don't fail if Redis isn't running
+// Mock IORedis so tests don't fail if Redis isn't running.
+// BullMQ calls new IORedis(url, opts) and then accesses these methods.
 vi.mock('ioredis', () => {
   const MockRedis = class {
-    on() {}
+    status = 'ready';
+    options = { keyPrefix: '' };
+    on() { return this; }
+    off() { return this; }
     connect() { return Promise.resolve(); }
-    disconnect() {}
+    disconnect() { return Promise.resolve(); }
     quit() { return Promise.resolve(); }
+    subscribe() { return Promise.resolve(); }
+    unsubscribe() { return Promise.resolve(); }
+    publish() { return Promise.resolve(0); }
+    duplicate() { return new (MockRedis as any)(); }
+    ping() { return Promise.resolve('PONG'); }
   };
   return { default: MockRedis };
 });
+
+
 
 describe('API & Queue Tests', () => {
   let app: express.Express;
