@@ -16,3 +16,20 @@
     font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   }
 }
+
+@layer utilities {
+  .animate-fade-in-right {
+    animation: fade-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes fade-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
