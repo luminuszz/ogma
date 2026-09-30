@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import express from 'express';
-import { fetchChapterPages } from './mangadex.js';
-import { pageQueue, createPageWorker } from './queue.js';
+import { fetchChapterPages } from './mangadex.ts';
+import { pageQueue, createPageWorker } from './queue.ts';
 
 const createServer = Effect.sync(() => {
   const app = express();

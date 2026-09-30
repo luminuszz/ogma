@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Effect } from 'effect';
-import { fetchChapterPages } from './mangadex.js';
+import { fetchChapterPages } from './mangadex.ts';
 
 describe('MangaDex Client', () => {
   beforeEach(() => {

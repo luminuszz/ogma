@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import { createServer } from './index.js';
+import { createServer } from './index.ts';
 import { Effect } from 'effect';
 import express from 'express';
 import fs from 'fs';
@@ -59,13 +59,13 @@ describe('API & Queue Tests', () => {
   });
 
   it('should initialize bullmq pageQueue', async () => {
-    const { pageQueue } = await import('./queue.js');
+    const { pageQueue } = await import('./queue.ts');
     expect(pageQueue).toBeDefined();
     expect(pageQueue.name).toBe('page-processing');
   });
 
   it('should export createPageWorker factory', async () => {
-    const { createPageWorker } = await import('./queue.js');
+    const { createPageWorker } = await import('./queue.ts');
     expect(createPageWorker).toBeDefined();
     expect(typeof createPageWorker).toBe('function');
   });
