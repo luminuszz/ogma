@@ -1,6 +1,6 @@
 """
 Translation client using local Ollama API (Llama 3 8B).
-Translates English comic text to Portuguese with context-aware prompts.
+Translates comic text to Brazilian Portuguese with context-aware prompts.
 """
 
 import httpx
@@ -11,7 +11,7 @@ MODEL_DEFAULT = "llama3:8b"
 
 SYSTEM_PROMPT = (
     "You are a professional manga/comic translator. "
-    "Translate the following English text to Brazilian Portuguese. "
+    "Detect the language of the following text and translate it to Brazilian Portuguese (pt-BR). "
     "Keep the tone casual, natural, and appropriate for manga dialogue. "
     "Preserve exclamations, onomatopoeia style, and emotional tone. "
     "Return ONLY the translated text, nothing else."
