@@ -6,6 +6,9 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    hmr: {
+      clientPort: 3030,
+    },
     proxy: {
       '/api': 'http://api:3031',
       '/data': 'http://api:3031',
