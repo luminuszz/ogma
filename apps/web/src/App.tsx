@@ -1,34 +1,19 @@
-import { useState } from 'react';
-import { InputPanel } from './components/InputPanel';
-import { Reader } from './components/Reader';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { RootLayout } from './layouts/RootLayout';
+import { Home } from './pages/Home';
+import { Reader } from './pages/Reader';
 
 function App() {
-  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
-  const [pages, setPages] = useState<string[]>([]);
-
-  const handleComplete = (chapterId: string, chapterPages: string[]) => {
-    setActiveChapterId(chapterId);
-    setPages(chapterPages);
-  };
-
   return (
-    <div className="App" style={{ padding: '1rem', fontFamily: 'sans-serif' }}>
-      <header style={{ marginBottom: '2rem' }}>
-        <h1>Ogma Web Reader</h1>
-      </header>
-      
-      {!activeChapterId ? (
-        <InputPanel onComplete={handleComplete} />
-      ) : (
-        <div>
-          <div style={{ marginBottom: '1rem' }}>
-            <button onClick={() => setActiveChapterId(null)}>← Back to Download</button>
-            <span style={{ marginLeft: '1rem' }}>Chapter: {activeChapterId}</span>
-          </div>
-          <Reader chapterId={activeChapterId} pages={pages} />
-        </div>
-      )}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<RootLayout />}>
+          <Route index element={<Home />} />
+          <Route path="reader/:chapterId" element={<Reader />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
