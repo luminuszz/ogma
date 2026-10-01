@@ -1,22 +1,13 @@
-FROM node:24-alpine AS builder
+FROM python:3.11-slim
+
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY . .
-RUN npx turbo prune api --docker
 
-FROM node:24-alpine AS installer
-WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@latest --activate
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install dependencies from pruned lockfile
-COPY --from=builder /app/out/json/ .
-RUN pnpm install --frozen-lockfile
+COPY src/ ./src/
 
-# Copy pruned source
-COPY --from=builder /app/out/full/ .
+ENV PYTHONPATH=/app
+ENV PORT=3031
 
-WORKDIR /app/apps/api
-EXPOSE 3031
-
-# Node 24 supports TypeScript natively via --experimental-strip-types
-CMD ["node", "--experimental-strip-types", "src/index.ts"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "3031"]
