@@ -3,6 +3,10 @@ name: ogma
 volumes:
   ogma_data:
     driver: local
+  paddle_cache:
+    driver: local
+  yolo_cache:
+    driver: local
 
 services:
   api:
@@ -19,6 +23,20 @@ services:
       - ogma_data:/data
     restart: unless-stopped
 
+  api-worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["arq", "src.worker.WorkerSettings"]
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - WORKER_ML_URL=http://worker-ml:8000
+    volumes:
+      - ogma_data:/data
+    depends_on:
+      - worker-ml
+    restart: unless-stopped
+
   worker-ml:
     build:
       context: apps/worker-ml
@@ -29,11 +47,15 @@ services:
       - DATA_DIR=/data
       - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral-nemo:latest}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
     networks:
       - default
       - ia_networking
     volumes:
       - ogma_data:/data
+      - paddle_cache:/root/.paddleocr
+      - yolo_cache:/root/.config/Ultralytics
     deploy:
       resources:
         reservations:
