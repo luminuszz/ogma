@@ -54,11 +54,12 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - CUSTOM_OPENAI_API_KEY=${OPENROUTER_API_KEY}
       - CUSTOM_OPENAI_API_BASE=https://openrouter.ai/api/v1
-      - CUSTOM_OPENAI_MODEL=openai/gpt-4o-mini
+      - CUSTOM_OPENAI_MODEL=nousresearch/hermes-3-llama-3.1-70b
     networks:
       - default
       - ia_networking
     volumes:
+      - ./apps/api/patch/config_gpt.py:/app/manga_translator/translators/config_gpt.py:ro
       - ./apps/api/worker/share.py:/app/manga_translator/mode/share.py
       - ./apps/api/worker/sent_data_internal.py:/app/server/sent_data_internal.py
       - ogma_data:/app/result
