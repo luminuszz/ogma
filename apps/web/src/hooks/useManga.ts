@@ -15,6 +15,16 @@ export const useStartDownload = () => {
   });
 };
 
+export const useDeleteChapter = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteChapter,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+    },
+  });
+};
+
 export const useChapterStatus = (chapterId: string | undefined) => {
   return useQuery<ChapterStatus, Error>({
     queryKey: ['chapterStatus', chapterId],

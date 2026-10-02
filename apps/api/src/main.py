@@ -198,6 +198,37 @@ async def get_library():
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/api/manga/{chapter_id}")
+async def delete_chapter(chapter_id: str):
+    try:
+        from sqlalchemy import delete
+        
+        from src.db.database import AsyncSessionLocal
+        from src.db.models import Chapter, Page
+        from src.services.storage import delete_chapter_from_r2
+        
+        async with AsyncSessionLocal() as session:
+            # Delete pages from DB
+            await session.execute(delete(Page).where(Page.chapter_id == chapter_id))
+            # Delete chapter from DB
+            result = await session.execute(delete(Chapter).where(Chapter.id == chapter_id))
+            await session.commit()
+            
+            if result.rowcount == 0:
+                raise HTTPException(status_code=404, detail="Chapter not found")
+        
+        # Delete from R2
+        try:
+            await delete_chapter_from_r2(chapter_id)
+        except Exception as e:
+            print(f"Failed to delete chapter {chapter_id} from R2: {e}")
+            
+        return {"status": "deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/admin/clear-cache")
 async def clear_cache():
     try:

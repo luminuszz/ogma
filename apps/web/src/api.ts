@@ -46,6 +46,15 @@ export const api = {
     return res.json();
   },
 
+  deleteChapter: async (chapterId: string): Promise<void> => {
+    const res = await fetch(`/api/manga/${chapterId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      throw new Error('Failed to delete chapter');
+    }
+  },
+
   clearCache: async (): Promise<void> => {
     const res = await fetch('/api/admin/clear-cache', {
       method: 'POST',
