@@ -43,3 +43,30 @@ async def fetch_chapter_pages(chapter_id: str) -> list[dict]:
         }
         for i, filename in enumerate(data["chapter"]["data"])
     ]
+
+async def fetch_chapter_metadata(chapter_id: str) -> dict:
+    url = f"https://api.mangadex.org/chapter/{chapter_id}?includes[]=manga"
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        if response.status_code != 200:
+            return {"manga_id": chapter_id, "title": "Unknown Title", "chapter": "N/A"}
+        data = response.json()
+        
+    attrs = data.get("data", {}).get("attributes", {})
+    chapter_number = attrs.get("chapter") or "N/A"
+    
+    # Extract Manga Title from relationships
+    manga_id = chapter_id
+    manga_title = "Unknown Title"
+    for rel in data.get("data", {}).get("relationships", []):
+        if rel.get("type") == "manga":
+            manga_id = rel.get("id")
+            manga_title = rel.get("attributes", {}).get("title", {}).get("en") or "Unknown Title"
+            break
+            
+    return {
+        "manga_id": manga_id,
+        "title": manga_title,
+        "chapter": chapter_number
+    }

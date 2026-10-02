@@ -21,6 +21,7 @@ class Chapter(Base):
     __tablename__ = "chapters"
     id = Column(String, primary_key=True, index=True)
     manga_id = Column(String, ForeignKey("mangas.id"))
+    chapter_number = Column(String, nullable=True)
     total_pages = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     status = Column(Enum(TranslationStatus), default=TranslationStatus.PENDING)  # type: ignore

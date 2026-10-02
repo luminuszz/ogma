@@ -3,7 +3,7 @@ from pathlib import Path
 from arq import create_pool
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 
-from src.mangadex import fetch_chapter_pages, fetch_manga_feed
+from src.mangadex import fetch_chapter_metadata, fetch_chapter_pages, fetch_manga_feed
 from src.worker import get_redis_settings
 
 app = FastAPI()
@@ -28,20 +28,37 @@ async def get_chapters(manga_id: str):
 async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
     try:
         pages = await fetch_chapter_pages(chapter_id)
+        meta = await fetch_chapter_metadata(chapter_id)
         
         from sqlalchemy import select
 
         from src.db.database import AsyncSessionLocal
-        from src.db.models import Chapter, Page, TranslationStatus
+        from src.db.models import Chapter, Manga, Page, TranslationStatus
         
         async with AsyncSessionLocal() as session:
+            manga_result = await session.execute(select(Manga).where(Manga.id == meta["manga_id"]))
+            manga_obj = manga_result.scalar_one_or_none()
+            if not manga_obj:
+                manga_obj = Manga(id=meta["manga_id"], title=meta["title"])
+                session.add(manga_obj)
+            else:
+                manga_obj.title = meta["title"]  # type: ignore
+
             result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
             chapter_obj = result.scalar_one_or_none()
             
             if not chapter_obj:
-                chapter_obj = Chapter(id=chapter_id, total_pages=len(pages), status=TranslationStatus.PROCESSING)
+                chapter_obj = Chapter(
+                    id=chapter_id,
+                    manga_id=meta["manga_id"],
+                    chapter_number=meta["chapter"],
+                    total_pages=len(pages),
+                    status=TranslationStatus.PROCESSING
+                )
                 session.add(chapter_obj)
             else:
+                chapter_obj.manga_id = meta["manga_id"]  # type: ignore
+                chapter_obj.chapter_number = meta["chapter"]  # type: ignore
                 chapter_obj.total_pages = len(pages) # type: ignore
                 chapter_obj.status = TranslationStatus.PROCESSING # type: ignore
                 
