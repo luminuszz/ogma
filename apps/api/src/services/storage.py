@@ -31,8 +31,9 @@ async def upload_image_to_r2(file_bytes: bytes, destination_path: str) -> str:
         )
         
     # Ensure no double slashes if public_url ends with slash
+    import time
     base_url = public_url.rstrip("/") if public_url else "" # type: ignore
-    return f"{base_url}/{destination_path}"
+    return f"{base_url}/{destination_path}?v={int(time.time())}"
 
 async def delete_chapter_from_r2(chapter_id: str) -> None:
     """
