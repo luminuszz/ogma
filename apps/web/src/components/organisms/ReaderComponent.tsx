@@ -33,7 +33,7 @@ const ReaderPage: React.FC<{ chapterId: string; page: string; index: number; onV
   );
 };
 
-export const Reader: React.FC<ReaderProps> = ({ chapterId, pages, onPageVisible, readingDirection = 'webtoon', imageFit = 'width' }) => {
+export const ReaderComponent: React.FC<ReaderProps> = ({ chapterId, pages, onPageVisible, readingDirection = 'webtoon', imageFit = 'width' }) => {
   const [pagedIndex, setPagedIndex] = useState(0);
 
   useEffect(() => {

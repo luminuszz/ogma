@@ -14,7 +14,7 @@ export function RootLayout() {
     try {
       await api.clearCache();
       navigate('/');
-    } catch (e) {
+    } catch {
       alert("Failed to clear cache");
     } finally {
       setIsClearing(false);

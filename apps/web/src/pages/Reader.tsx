@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Settings, X } from 'lucide-react';
-import { api, type ChapterStatus } from '../api';
-import { Reader as ReaderComponent } from '../components/Reader';
+import { ArrowLeft, Settings, X } from 'lucide-react';
+import { useChapterStatus } from '../hooks/useManga';
+import { ReaderComponent } from '../components/organisms/ReaderComponent';
+import { Loader } from '../components/atoms/Loader';
+import { ProgressBar } from '../components/atoms/ProgressBar';
+import { ErrorCard } from '../components/molecules/ErrorCard';
+import { LoadingStatus } from '../components/molecules/LoadingStatus';
 
 type ReadingDirection = 'webtoon' | 'paged';
 type ImageFit = 'width' | 'height';
@@ -11,11 +15,6 @@ type LoadingMode = 'real-time' | 'wait';
 export function Reader() {
   const { chapterId } = useParams<{ chapterId: string }>();
   const navigate = useNavigate();
-
-  const [status, setStatus] = useState<ChapterStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [fetchedPages, setFetchedPages] = useState<string[]>([]);
-  const [isPolling, setIsPolling] = useState(true);
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -36,49 +35,24 @@ export function Reader() {
     localStorage.setItem('reader_loading', loadingMode);
   }, [readingDirection, imageFit, loadingMode]);
 
-  useEffect(() => {
-    if (!chapterId || !isPolling) return;
+  const { data: status, error: queryError } = useChapterStatus(chapterId);
+  const isPolling = status ? status.status !== 'done' && status.status !== 'error' : true;
 
-    let timeoutId: number;
-    let isMounted = true;
+  const error = queryError?.message || (status?.status === 'error' ? status.error : null);
 
-    const poll = async () => {
-      try {
-        const res = await api.getStatus(chapterId);
-        if (!isMounted) return;
-        setStatus(res);
-
-        if (res.readyPages) {
-          setFetchedPages(res.readyPages.map((i: number) => `${i}.png`));
-        }
-        if (res.status === 'done') {
-          setIsPolling(false);
-          if (!res.readyPages && res.total) {
-            setFetchedPages(Array.from({ length: res.total }, (_, i) => `${i}.png`));
-          }
-        } else if (res.status === 'error') {
-          setIsPolling(false);
-          setError(res.error || 'Failed to download chapter');
-        } else {
-          timeoutId = window.setTimeout(poll, 2000);
-        }
-      } catch (err: any) {
-        if (!isMounted) return;
-        setIsPolling(false);
-        setError(err.message || 'Failed to get status');
-      }
-    };
-
-    poll();
-
-    return () => {
-      isMounted = false;
-      window.clearTimeout(timeoutId);
-    };
-  }, [chapterId, isPolling]);
+  const fetchedPages = useMemo(() => {
+    if (!status) return [];
+    if (status.readyPages) {
+      return status.readyPages.map((i: number) => `${i}.png`);
+    }
+    if (status.status === 'done' && status.total) {
+      return Array.from({ length: status.total }, (_, i) => `${i}.png`);
+    }
+    return [];
+  }, [status]);
 
   const pages = loadingMode === 'wait' && isPolling ? [] : fetchedPages;
-  const totalPages = pages.length;
+  const totalPages = status?.total || pages.length;
   const progressPercent = totalPages > 0 ? ((currentPageIndex + 1) / totalPages) * 100 : 0;
 
   return (
@@ -104,39 +78,15 @@ export function Reader() {
 
       <div className="flex-1 flex flex-col items-center">
         {error ? (
-          <div className="mt-10 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-center max-w-md">
-            <p className="font-semibold mb-2">Erro</p>
-            <p className="text-sm">{error}</p>
-            <button
-              onClick={() => navigate('/')}
-              className="mt-4 px-4 py-2 bg-panel-light hover:bg-panel rounded-lg text-foreground transition-colors"
-            >
-              Tentar novamente
-            </button>
-          </div>
+          <ErrorCard error={error} onRetry={() => navigate('/')} />
         ) : isPolling && pages.length === 0 ? (
-          <div className="mt-20 flex flex-col items-center gap-6 text-foreground-muted px-4 w-full max-w-sm mx-auto">
-            <Loader2 size={40} className="animate-spin text-primary" />
-            {status && status.total && status.total > 0 ? (
-              <div className="w-full space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Traduzindo páginas...</span>
-                  <span className="text-primary font-semibold">{status.completed ?? 0} / {status.total}</span>
-                </div>
-                <div className="w-full bg-panel-light rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.round(((status.completed ?? 0) / status.total) * 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-center text-foreground-muted">
-                  {status.total - (status.completed ?? 0)} página{(status.total - (status.completed ?? 0)) !== 1 ? 's' : ''} restante{(status.total - (status.completed ?? 0)) !== 1 ? 's' : ''}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm">Carregando capítulo...</p>
-            )}
-          </div>
+          status && status.total && status.total > 0 ? (
+            <LoadingStatus completed={status.completed ?? 0} total={status.total} />
+          ) : (
+            <div className="mt-20 flex justify-center w-full">
+              <Loader message="Carregando capítulo..." />
+            </div>
+          )
         ) : (
           <div className="w-full">
             {chapterId && totalPages > 0 ? (
@@ -149,10 +99,7 @@ export function Reader() {
                   imageFit={imageFit}
                 />
                 {isPolling && (
-                  <div className="flex flex-col items-center justify-center p-8 gap-4 text-foreground-muted">
-                    <Loader2 size={30} className="animate-spin text-primary" />
-                    <span className="text-sm">Traduzindo próximas páginas...</span>
-                  </div>
+                  <Loader message="Traduzindo próximas páginas..." />
                 )}
               </>
             ) : (
@@ -165,12 +112,7 @@ export function Reader() {
       {/* Bottom Progress Bar */}
       {totalPages > 0 && (!isPolling || loadingMode === 'real-time') && !error && (
         <div className="fixed bottom-0 left-0 right-0 bg-panel border-t border-panel-light z-40">
-          <div className="h-1 w-full bg-base">
-            <div
-              className="h-full bg-primary transition-all duration-300 ease-out"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
+          <ProgressBar percent={progressPercent} />
           <div className="flex items-center justify-center p-3 text-sm font-medium text-foreground">
             Página {currentPageIndex + 1} / {totalPages}
           </div>

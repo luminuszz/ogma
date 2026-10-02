@@ -8,7 +8,7 @@ export const useStartDownload = () => {
   });
 };
 
-export const useChapterStatus = (chapterId: string | undefined, isPolling: boolean) => {
+export const useChapterStatus = (chapterId: string | undefined) => {
   return useQuery<ChapterStatus, Error>({
     queryKey: ['chapterStatus', chapterId],
     queryFn: () => {
@@ -16,7 +16,13 @@ export const useChapterStatus = (chapterId: string | undefined, isPolling: boole
       return api.getStatus(chapterId);
     },
     enabled: !!chapterId,
-    refetchInterval: isPolling ? 1000 : false,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data?.status === 'done' || data?.status === 'error') {
+        return false;
+      }
+      return 1000;
+    },
   });
 };
 
