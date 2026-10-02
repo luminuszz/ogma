@@ -3,8 +3,22 @@ name: ogma
 volumes:
   ogma_data:
     driver: local
+  db_data:
+    driver: local
 
 services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ogma
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
   api:
     build:
       context: .
@@ -15,8 +29,7 @@ services:
       - REDIS_URL=${REDIS_URL}
       - WORKER_ML_URL=http://manga-translator:5003
       - PORT=3031
-    volumes:
-      - ogma_data:/data
+      - DATABASE_URL=${DATABASE_URL}
     restart: unless-stopped
 
   api-worker:
@@ -27,8 +40,7 @@ services:
     environment:
       - REDIS_URL=${REDIS_URL}
       - WORKER_ML_URL=http://manga-translator:5003
-    volumes:
-      - ogma_data:/data
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - manga-translator
     extra_hosts:
