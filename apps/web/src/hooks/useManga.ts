@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
-import type { ChapterStatus } from '@/api';
+import type { ChapterStatus, LibraryManga } from '@/api';
+
+export const useLibrary = () => {
+  return useQuery<LibraryManga[], Error>({
+    queryKey: ['library'],
+    queryFn: api.getLibrary,
+  });
+};
 
 export const useStartDownload = () => {
   return useMutation({

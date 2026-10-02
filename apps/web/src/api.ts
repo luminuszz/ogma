@@ -8,7 +8,23 @@ export type ChapterStatus = {
   readyPages?: number[]
 };
 
+export type LibraryManga = {
+  id: string;
+  title: string;
+  chapter: string;
+  downloaded: boolean;
+  total: number;
+};
+
 export const api = {
+  getLibrary: async (): Promise<LibraryManga[]> => {
+    return [
+      { id: '1', title: 'One Piece', chapter: '1090', downloaded: true, total: 17 },
+      { id: '2', title: 'Jujutsu Kaisen', chapter: '230', downloaded: false, total: 19 },
+      { id: '3', title: 'Chainsaw Man', chapter: '140', downloaded: true, total: 21 },
+    ];
+  },
+
   startDownload: async (chapterId: string): Promise<void> => {
     const res = await fetch(`/api/manga/${chapterId}`, {
       method: 'POST',
