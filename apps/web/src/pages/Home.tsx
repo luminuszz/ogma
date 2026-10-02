@@ -123,9 +123,34 @@ export function Home() {
             disabled={isLoading || !inputUrl.trim()}
             className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
           >
-            {isLoading ? <><Loader2 className="animate-spin mr-2" size={18} /> Iniciando Tradução...</> : (chapters.length > 0 ? 'Refresh Chapters' : 'Buscar / Iniciar')}
+            {isLoading ? <><Loader2 className="animate-spin mr-2" size={18} /> Iniciando...</> : (chapters.length > 0 ? 'Atualizar Capítulos' : 'Buscar / Iniciar')}
           </button>
         </form>
+
+        {chapters.length > 0 && (
+          <div className="mt-6 max-h-64 overflow-y-auto pr-2 space-y-2 border-t border-panel-light pt-4 custom-scrollbar">
+            <h4 className="text-sm font-bold text-foreground mb-2">Capítulos Encontrados</h4>
+            {chapters.map((chapter) => (
+              <button
+                key={chapter.id}
+                onClick={async () => {
+                  setIsSearchModalOpen(false);
+                  await startDownload.mutateAsync(chapter.id);
+                  navigate(`/reader/${encodeURIComponent(chapter.id)}`);
+                }}
+                className="w-full text-left p-3 rounded-lg bg-base border border-panel-light hover:border-primary transition-colors flex justify-between items-center group"
+              >
+                <div className="truncate pr-4">
+                  <span className="font-bold text-foreground mr-2">Ch. {chapter.chapter}</span>
+                  <span className="text-sm text-foreground-muted truncate">{chapter.title || 'Sem título'}</span>
+                </div>
+                <span className="text-xs uppercase bg-panel px-2 py-1 rounded text-foreground-muted whitespace-nowrap group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                  {chapter.language?.[0] || 'UNK'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </Modal>
     </div>
   );
