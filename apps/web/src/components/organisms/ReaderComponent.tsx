@@ -9,7 +9,7 @@ interface ReaderProps {
   imageFit?: 'width' | 'height';
 }
 
-const ReaderPage: React.FC<{ chapterId: string; page: string; index: number; onVisible?: (idx: number) => void; imageFit: 'width' | 'height' }> = ({ chapterId, page, index, onVisible, imageFit }) => {
+const ReaderPage: React.FC<{ page: string; index: number; onVisible?: (idx: number) => void; imageFit: 'width' | 'height' }> = ({ page, index, onVisible, imageFit }) => {
   const { ref, inView } = useInView({
     threshold: 0.1,
     rootMargin: "-10% 0px -10% 0px",
@@ -24,7 +24,7 @@ const ReaderPage: React.FC<{ chapterId: string; page: string; index: number; onV
   return (
     <div ref={ref} className="w-full flex justify-center bg-black">
       <img
-        src={`/data/${chapterId}/${page}`}
+        src={page}
         alt={`Page ${index + 1}`}
         className={`block object-contain ${imageFit === 'height' ? 'max-h-screen' : 'w-full max-w-4xl'}`}
         loading="lazy"
@@ -33,7 +33,7 @@ const ReaderPage: React.FC<{ chapterId: string; page: string; index: number; onV
   );
 };
 
-export const ReaderComponent: React.FC<ReaderProps> = ({ chapterId, pages, onPageVisible, readingDirection = 'webtoon', imageFit = 'width' }) => {
+export const ReaderComponent: React.FC<ReaderProps> = ({ pages, onPageVisible, readingDirection = 'webtoon', imageFit = 'width' }) => {
   const [pagedIndex, setPagedIndex] = useState(0);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export const ReaderComponent: React.FC<ReaderProps> = ({ chapterId, pages, onPag
         onClick={handleTouch}
       >
         <img
-          src={`/data/${chapterId}/${pages[pagedIndex]}`}
+          src={pages[pagedIndex]}
           alt={`Page ${pagedIndex + 1}`}
           className={`block object-contain ${imageFit === 'height' ? 'max-h-full' : 'w-full'}`}
         />
@@ -93,7 +93,7 @@ export const ReaderComponent: React.FC<ReaderProps> = ({ chapterId, pages, onPag
       {pages.map((page, idx) => (
         <ReaderPage 
           key={page} 
-          chapterId={chapterId} 
+           
           page={page} 
           index={idx} 
           onVisible={onPageVisible}

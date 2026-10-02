@@ -5,7 +5,7 @@ export type ChapterStatus = {
   failed?: number;
   error?: string;
   chapterId?: string;
-  readyPages?: number[]
+  readyPages?: { pageIndex: number; url: string }[];
 };
 
 export type LibraryManga = {

@@ -139,7 +139,7 @@ async def chapter_status(chapter_id: str):
             )
             pages = pages_result.scalars().all()
             
-            ready_pages = [p.page_index for p in pages if p.status == TranslationStatus.DONE]
+            ready_pages = [{"pageIndex": p.page_index, "url": p.image_url} for p in pages if p.status == TranslationStatus.DONE]
             failed = len([p for p in pages if p.status == TranslationStatus.ERROR])
             completed = len(ready_pages)
             

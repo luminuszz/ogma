@@ -43,10 +43,9 @@ export function Reader() {
   const fetchedPages = useMemo(() => {
     if (!status) return [];
     if (status.readyPages) {
-      return status.readyPages.map((i: number) => `${i}.png`);
-    }
-    if (status.status === 'done' && status.total) {
-      return Array.from({ length: status.total }, (_, i) => `${i}.png`);
+      return status.readyPages
+        .sort((a, b) => a.pageIndex - b.pageIndex)
+        .map(page => page.url);
     }
     return [];
   }, [status]);
@@ -65,7 +64,7 @@ export function Reader() {
           <ArrowLeft size={20} className="mr-2" />
           Voltar
         </button>
-        <div className="text-sm font-medium truncate max-w-[200px] md:max-w-md text-foreground">
+        <div className="text-sm font-medium truncate max-w-50 md:max-w-md text-foreground">
           {chapterId}
         </div>
         <button
@@ -141,13 +140,13 @@ export function Reader() {
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Reading Direction</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <button 
+                  <button
                     onClick={() => setReadingDirection('webtoon')}
                     className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${readingDirection === 'webtoon' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
                   >
                     Webtoon
                   </button>
-                  <button 
+                  <button
                     onClick={() => setReadingDirection('paged')}
                     className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${readingDirection === 'paged' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
                   >
@@ -159,13 +158,13 @@ export function Reader() {
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Image Fit</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <button 
+                  <button
                     onClick={() => setImageFit('width')}
                     className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${imageFit === 'width' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
                   >
                     Width
                   </button>
-                  <button 
+                  <button
                     onClick={() => setImageFit('height')}
                     className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${imageFit === 'height' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
                   >
@@ -177,13 +176,13 @@ export function Reader() {
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Loading Mode</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <button 
+                  <button
                     onClick={() => setLoadingMode('real-time')}
                     className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${loadingMode === 'real-time' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
                   >
                     Real-time
                   </button>
-                  <button 
+                  <button
                     onClick={() => setLoadingMode('wait')}
                     className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${loadingMode === 'wait' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
                   >
