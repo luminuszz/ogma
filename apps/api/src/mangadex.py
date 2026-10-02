@@ -1,5 +1,6 @@
 import httpx
 
+
 async def fetch_manga_feed(manga_id: str) -> list[dict]:
     url = f"https://api.mangadex.org/manga/{manga_id}/feed"
     params = {
@@ -9,7 +10,7 @@ async def fetch_manga_feed(manga_id: str) -> list[dict]:
     }
     
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, params=params)
+        response = await client.get(url, params=params)  # type: ignore
         response.raise_for_status()
         data = response.json()
         

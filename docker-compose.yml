@@ -3,10 +3,6 @@ name: ogma
 volumes:
   ogma_data:
     driver: local
-  paddle_cache:
-    driver: local
-  yolo_cache:
-    driver: local
 
 services:
   api:
@@ -17,7 +13,7 @@ services:
       - "3031:3031"
     environment:
       - REDIS_URL=${REDIS_URL}
-      - WORKER_ML_URL=http://worker-ml:8000
+      - WORKER_ML_URL=http://manga-translator:5003
       - PORT=3031
     volumes:
       - ogma_data:/data
@@ -30,32 +26,35 @@ services:
     command: ["arq", "src.worker.WorkerSettings"]
     environment:
       - REDIS_URL=${REDIS_URL}
-      - WORKER_ML_URL=http://worker-ml:8000
+      - WORKER_ML_URL=http://manga-translator:5003
     volumes:
       - ogma_data:/data
     depends_on:
-      - worker-ml
+      - manga-translator
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
-  worker-ml:
-    build:
-      context: apps/worker-ml
-      dockerfile: Dockerfile
+  manga-translator:
+    image: zyddnys/manga-image-translator:main
+    entrypoint: ["python"]
+    command: ["server/main.py", "--host", "0.0.0.0", "--port", "5003", "--nonce", "None", "--use-gpu"]
     ports:
-      - "8001:8000"
+      - "5003:5003"
     environment:
-      - DATA_DIR=/data
-      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral-nemo:latest}
-      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - CUSTOM_OPENAI_API_KEY=${OPENROUTER_API_KEY}
+      - CUSTOM_OPENAI_API_BASE=https://openrouter.ai/api/v1
+      - CUSTOM_OPENAI_MODEL=openai/gpt-4o-mini
     networks:
       - default
       - ia_networking
     volumes:
-      - ogma_data:/data
-      - paddle_cache:/root/.paddleocr
-      - yolo_cache:/root/.config/Ultralytics
+      - ./apps/api/worker/share.py:/app/manga_translator/mode/share.py
+      - ./apps/api/worker/sent_data_internal.py:/app/server/sent_data_internal.py
+      - ogma_data:/app/result
+      - ./public/animeace.ttf:/app/fonts/Arial-Unicode-Regular.ttf
     deploy:
       resources:
         reservations:

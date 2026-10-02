@@ -1,13 +1,11 @@
-import os
-import json
-import logging
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+
 from arq import create_pool
+from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+
+from src.mangadex import fetch_chapter_pages, fetch_manga_feed
 from src.worker import get_redis_settings
-from src.mangadex import fetch_manga_feed, fetch_chapter_pages
 
 app = FastAPI()
 redis_pool = None
@@ -25,43 +23,60 @@ async def get_chapters(manga_id: str):
     try:
         chapters = await fetch_manga_feed(manga_id)
         return {"chapters": chapters}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/manga/{chapter_id}")
-async def process_chapter(chapter_id: str):
+async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
     try:
         pages = await fetch_chapter_pages(chapter_id)
         
-        # Enqueue jobs
-        for page in pages:
+        async def enqueue_all(pages):
+            import asyncio
+            if not pages:
+                return
+                
+            # Prioritize the first page by enqueuing and giving it a head start
             await redis_pool.enqueue_job(
                 "process_page",
                 chapter_id,
-                page["url"],
-                page["pageIndex"],
-                _job_id=f"page_{chapter_id}_{page['pageIndex']}"
+                pages[0]["url"],
+                pages[0]["pageIndex"],
+                _job_id=f"page_{chapter_id}_{pages[0]['pageIndex']}"
             )
+            
+            # Pequeno delay para garantir que a primeira página seja pega pelo worker primeiro
+            await asyncio.sleep(0.1)
+
+            # Enfileira o restante sequencialmente para manter a ordem de prioridade
+            for page in pages[1:]:
+                await redis_pool.enqueue_job(
+                    "process_page",
+                    chapter_id,
+                    page["url"],
+                    page["pageIndex"],
+                    _job_id=f"page_{chapter_id}_{page['pageIndex']}"
+                )
+
+        # Enqueue jobs em background concorrentemente
+        background_tasks.add_task(enqueue_all, pages)
             
         # Store total pages in Redis so the status endpoint can read it reliably
         # without querying heavy BullMQ/ARQ dependencies
-        redis = redis_pool._redis
-        await redis.set(f"chapter_total_{chapter_id}", len(pages))
+        await redis_pool.set(f"chapter_total_{chapter_id}", len(pages))  # type: ignore
             
         return {
             "status": "queued",
             "chapterId": chapter_id,
             "totalPages": len(pages),
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/manga/{chapter_id}/status")
 async def chapter_status(chapter_id: str):
     try:
-        redis = redis_pool._redis
-        
-        total_str = await redis.get(f"chapter_total_{chapter_id}")
+        total_str = await redis_pool.get(f"chapter_total_{chapter_id}")  # type: ignore
         if not total_str:
             return {"chapterId": chapter_id, "total": 0, "completed": 0, "failed": 0, "status": "not_found"}
             
@@ -89,5 +104,33 @@ async def chapter_status(chapter_id: str):
             "status": status,
             "readyPages": ready_pages
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/clear-cache")
+async def clear_cache():
+    try:
+        import shutil
+        
+        # 1. Clear Redis (apenas chaves referentes ao ARQ e ao controle de capítulos do projeto)
+        keys_to_delete = []
+        async for key in redis_pool.scan_iter("arq:*"):
+            keys_to_delete.append(key)
+        async for key in redis_pool.scan_iter("chapter_total_*"):
+            keys_to_delete.append(key)
+        
+        if keys_to_delete:
+            await redis_pool.delete(*keys_to_delete)
+        
+        # 2. Clear local disk storage (/data directory)
+        data_dir = Path("/data")
+        if data_dir.exists():
+            for item in data_dir.iterdir():
+                if item.is_dir():
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
+                    
+        return {"success": True, "message": "Redis queue and local storage cleared successfully."}
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))

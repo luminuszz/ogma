@@ -7,4 +7,4 @@ class IntersectionObserverMock {
   disconnect = vi.fn();
 }
 
-global.IntersectionObserver = IntersectionObserverMock as any;
+globalThis.IntersectionObserver = IntersectionObserverMock as any;

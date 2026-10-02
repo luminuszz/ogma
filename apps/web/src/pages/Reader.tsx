@@ -1,25 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Settings, X } from 'lucide-react';
 import { api, type ChapterStatus } from '../api';
 import { Reader as ReaderComponent } from '../components/Reader';
 
-
-
+type ReadingDirection = 'webtoon' | 'paged';
+type ImageFit = 'width' | 'height';
+type LoadingMode = 'real-time' | 'wait';
 
 export function Reader() {
   const { chapterId } = useParams<{ chapterId: string }>();
   const navigate = useNavigate();
 
-
-
   const [status, setStatus] = useState<ChapterStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pages, setPages] = useState<string[]>([]);
+  const [fetchedPages, setFetchedPages] = useState<string[]>([]);
   const [isPolling, setIsPolling] = useState(true);
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const [readingDirection, setReadingDirection] = useState<ReadingDirection>(
+    () => (localStorage.getItem('reader_direction') as ReadingDirection) || 'webtoon'
+  );
+  const [imageFit, setImageFit] = useState<ImageFit>(
+    () => (localStorage.getItem('reader_fit') as ImageFit) || 'width'
+  );
+  const [loadingMode, setLoadingMode] = useState<LoadingMode>(
+    () => (localStorage.getItem('reader_loading') as LoadingMode) || 'real-time'
+  );
+
+  useEffect(() => {
+    localStorage.setItem('reader_direction', readingDirection);
+    localStorage.setItem('reader_fit', imageFit);
+    localStorage.setItem('reader_loading', loadingMode);
+  }, [readingDirection, imageFit, loadingMode]);
 
   useEffect(() => {
     if (!chapterId || !isPolling) return;
@@ -33,11 +48,13 @@ export function Reader() {
         if (!isMounted) return;
         setStatus(res);
 
+        if (res.readyPages) {
+          setFetchedPages(res.readyPages.map((i: number) => `${i}.png`));
+        }
         if (res.status === 'done') {
           setIsPolling(false);
-          // Backend saves pages as 0.png, 1.png... up to total-1
-          if (res.total) {
-            setPages(Array.from({ length: res.total }, (_, i) => `${i}.png`));
+          if (!res.readyPages && res.total) {
+            setFetchedPages(Array.from({ length: res.total }, (_, i) => `${i}.png`));
           }
         } else if (res.status === 'error') {
           setIsPolling(false);
@@ -60,6 +77,7 @@ export function Reader() {
     };
   }, [chapterId, isPolling]);
 
+  const pages = loadingMode === 'wait' && isPolling ? [] : fetchedPages;
   const totalPages = pages.length;
   const progressPercent = totalPages > 0 ? ((currentPageIndex + 1) / totalPages) * 100 : 0;
 
@@ -96,7 +114,7 @@ export function Reader() {
               Tentar novamente
             </button>
           </div>
-        ) : isPolling ? (
+        ) : isPolling && pages.length === 0 ? (
           <div className="mt-20 flex flex-col items-center gap-6 text-foreground-muted px-4 w-full max-w-sm mx-auto">
             <Loader2 size={40} className="animate-spin text-primary" />
             {status && status.total && status.total > 0 ? (
@@ -122,11 +140,21 @@ export function Reader() {
         ) : (
           <div className="w-full">
             {chapterId && totalPages > 0 ? (
-              <ReaderComponent
-                chapterId={chapterId}
-                pages={pages}
-                onPageVisible={setCurrentPageIndex}
-              />
+              <>
+                <ReaderComponent
+                  chapterId={chapterId}
+                  pages={pages}
+                  onPageVisible={setCurrentPageIndex}
+                  readingDirection={readingDirection}
+                  imageFit={imageFit}
+                />
+                {isPolling && (
+                  <div className="flex flex-col items-center justify-center p-8 gap-4 text-foreground-muted">
+                    <Loader2 size={30} className="animate-spin text-primary" />
+                    <span className="text-sm">Traduzindo próximas páginas...</span>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="mt-10 text-center text-foreground-muted">Nenhuma página encontrada.</div>
             )}
@@ -135,7 +163,7 @@ export function Reader() {
       </div>
 
       {/* Bottom Progress Bar */}
-      {totalPages > 0 && !isPolling && !error && (
+      {totalPages > 0 && (!isPolling || loadingMode === 'real-time') && !error && (
         <div className="fixed bottom-0 left-0 right-0 bg-panel border-t border-panel-light z-40">
           <div className="h-1 w-full bg-base">
             <div
@@ -171,10 +199,16 @@ export function Reader() {
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Reading Direction</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <button className="bg-primary/20 border border-primary text-primary py-2 px-3 rounded-lg text-sm font-medium">
+                  <button 
+                    onClick={() => setReadingDirection('webtoon')}
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${readingDirection === 'webtoon' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
+                  >
                     Webtoon
                   </button>
-                  <button className="bg-base border border-panel-light text-foreground-muted hover:text-foreground py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                  <button 
+                    onClick={() => setReadingDirection('paged')}
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${readingDirection === 'paged' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
+                  >
                     Paged (LTR)
                   </button>
                 </div>
@@ -183,11 +217,35 @@ export function Reader() {
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Image Fit</h4>
                 <div className="grid grid-cols-2 gap-2">
-                  <button className="bg-primary/20 border border-primary text-primary py-2 px-3 rounded-lg text-sm font-medium">
+                  <button 
+                    onClick={() => setImageFit('width')}
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${imageFit === 'width' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
+                  >
                     Width
                   </button>
-                  <button className="bg-base border border-panel-light text-foreground-muted hover:text-foreground py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                  <button 
+                    onClick={() => setImageFit('height')}
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${imageFit === 'height' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
+                  >
                     Height
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Loading Mode</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <button 
+                    onClick={() => setLoadingMode('real-time')}
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${loadingMode === 'real-time' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
+                  >
+                    Real-time
+                  </button>
+                  <button 
+                    onClick={() => setLoadingMode('wait')}
+                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${loadingMode === 'wait' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
+                  >
+                    Wait all
                   </button>
                 </div>
               </div>

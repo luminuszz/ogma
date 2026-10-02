@@ -22,7 +22,7 @@
           "fill": "$bg-panel",
           "padding": [
             0,
-            32
+            48
           ],
           "justifyContent": "space_between",
           "alignItems": "center",
@@ -34,6 +34,20 @@
               "gap": 20,
               "alignItems": "center",
               "children": [
+                {
+                  "type": "frame",
+                  "id": "NEXHj",
+                  "name": "App Logo",
+                  "width": 32,
+                  "height": 32,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "ogma_logo.jpg",
+                    "mode": "cover"
+                  },
+                  "cornerRadius": 6
+                },
                 {
                   "type": "icon",
                   "id": "F6oWxJ",
@@ -93,8 +107,12 @@
           "name": "Manga Viewport",
           "width": "fill_container",
           "height": "fill_container",
-          "padding": 24,
-          "justifyContent": "center",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            48,
+            0
+          ],
           "alignItems": "center",
           "children": [
             {
@@ -115,8 +133,23 @@
                 "enabled": true,
                 "url": "https://images.unsplash.com/photo-1612036781197-ed37e5d975f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3OTA3ODg2Njd8&ixlib=rb-4.1.0&q=80&w=1080",
                 "mode": "cover"
-              },
-              "cornerRadius": 8
+              }
+            },
+            {
+              "type": "frame",
+              "id": "w7yye",
+              "name": "Manga Page 2",
+              "width": 600,
+              "height": 850,
+              "fill": "#2A2A2A"
+            },
+            {
+              "type": "frame",
+              "id": "P14wRo",
+              "name": "Manga Page 3",
+              "width": 600,
+              "height": 850,
+              "fill": "#2A2A2A"
             }
           ]
         },
@@ -129,7 +162,7 @@
           "fill": "$bg-panel",
           "padding": [
             0,
-            64
+            48
           ],
           "justifyContent": "space_between",
           "alignItems": "center",
@@ -168,9 +201,9 @@
                   "id": "xdziR",
                   "name": "Progress Bar Track",
                   "width": "fill_container",
-                  "height": 6,
+                  "height": 8,
                   "fill": "#333333",
-                  "cornerRadius": 3,
+                  "cornerRadius": 4,
                   "layout": "none",
                   "children": [
                     {
@@ -181,9 +214,23 @@
                       "y": 0,
                       "name": "Progress Bar Fill",
                       "width": 200,
-                      "height": 6,
+                      "height": 8,
                       "fill": "$accent",
-                      "cornerRadius": 3
+                      "cornerRadius": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "sPcvo",
+                          "layoutPosition": "absolute",
+                          "x": 196,
+                          "y": -4,
+                          "name": "Thumb",
+                          "width": 16,
+                          "height": 16,
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 8
+                        }
+                      ]
                     }
                   ]
                 }
@@ -198,6 +245,760 @@
               "icon": "chevron-right",
               "library": "lucide",
               "fill": "$accent"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "IzEHC",
+          "layoutPosition": "absolute",
+          "x": 1040,
+          "y": 0,
+          "name": "Settings Drawer",
+          "width": 400,
+          "height": 1024,
+          "fill": "$bg-panel",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "zYtKr",
+              "name": "Drawer Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cseEj",
+                  "name": "Drawer Title",
+                  "fill": "$text-primary",
+                  "content": "Settings",
+                  "fontFamily": "$font-main",
+                  "fontSize": 24,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "icon",
+                  "id": "k9nxK",
+                  "name": "Close Icon",
+                  "width": 24,
+                  "height": 24,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$text-secondary"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "NcdZj",
+              "name": "Reading Direction",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "jdHsi",
+                  "name": "Label",
+                  "fill": "$text-secondary",
+                  "content": "Reading Direction",
+                  "fontFamily": "$font-main",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "G5moQ",
+                  "name": "Segmented Control",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "$bg-base",
+                  "cornerRadius": 8,
+                  "padding": 4,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "TpamY",
+                      "name": "Option Left-to-Right",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "iSCwi",
+                          "fill": "$text-secondary",
+                          "content": "LTR",
+                          "fontFamily": "$font-main",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sP0FO",
+                      "name": "Option Top-to-Bottom",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#2A1540",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "VjFW2",
+                          "fill": "$accent",
+                          "content": "Vertical",
+                          "fontFamily": "$font-main",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fdR3j",
+                      "name": "Option Right-to-Left",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "cornerRadius": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "d3FWev",
+                          "fill": "$text-secondary",
+                          "content": "RTL",
+                          "fontFamily": "$font-main",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "i3W5D",
+              "name": "Page Fit",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Cs0BF",
+                  "name": "Fit Label",
+                  "fill": "$text-secondary",
+                  "content": "Page Fit",
+                  "fontFamily": "$font-main",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "hedPp",
+                  "name": "Fit Options",
+                  "width": "fill_container",
+                  "height": 48,
+                  "fill": "$bg-base",
+                  "cornerRadius": 8,
+                  "padding": 4,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hWmBw",
+                      "name": "Option Width",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#2A1540",
+                      "cornerRadius": 6,
+                      "gap": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "IWNfG",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "maximize-2",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        },
+                        {
+                          "type": "text",
+                          "id": "lfqwy",
+                          "fill": "$accent",
+                          "content": " Width",
+                          "fontFamily": "$font-main",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VM0Lo",
+                      "name": "Option Height",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "cornerRadius": 6,
+                      "gap": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "aIilY",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "minimize-2",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "cyYZO",
+                          "fill": "$text-secondary",
+                          "content": " Height",
+                          "fontFamily": "$font-main",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yx6si",
+      "x": 1520,
+      "y": 0,
+      "name": "Home Screen",
+      "width": 1440,
+      "height": 1024,
+      "fill": "$bg-base",
+      "layout": "vertical",
+      "gap": 64,
+      "padding": [
+        80,
+        0
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "O3eDii",
+          "name": "Header",
+          "layout": "vertical",
+          "gap": 16,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "hAEIS",
+              "name": "App Logo",
+              "fill": "$accent",
+              "content": "OGMA",
+              "fontFamily": "$font-main",
+              "fontSize": 64,
+              "fontWeight": "800"
+            },
+            {
+              "type": "text",
+              "id": "A6Z5Z",
+              "name": "Subtitle",
+              "fill": "$text-secondary",
+              "content": "The ultimate premium manga reading experience.",
+              "fontFamily": "$font-main",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "CFnl6",
+          "name": "Main Container",
+          "width": 800,
+          "layout": "vertical",
+          "gap": 48,
+          "children": [
+            {
+              "type": "frame",
+              "id": "O43gaU",
+              "name": "Inputs Section",
+              "width": "fill_container",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "syMgq",
+                  "name": "Chapter Input Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qYXbT",
+                      "fill": "$text-primary",
+                      "content": "Direct Chapter ID",
+                      "fontFamily": "$font-main",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KDXyk",
+                      "name": "Input Box",
+                      "width": "fill_container",
+                      "height": 56,
+                      "fill": "$bg-panel",
+                      "cornerRadius": 12,
+                      "padding": [
+                        0,
+                        20
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lxrVm",
+                          "fill": "$text-secondary",
+                          "content": "e.g., 9a0f...",
+                          "fontFamily": "$font-main",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "FKHC0",
+                          "width": 24,
+                          "height": 24,
+                          "icon": "arrow-right",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "w0qSRT",
+                  "name": "Manga URL Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rkrdk",
+                      "fill": "$text-primary",
+                      "content": "Manga Homepage URL",
+                      "fontFamily": "$font-main",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Ie33g",
+                      "name": "Input Box Active",
+                      "width": "fill_container",
+                      "height": 56,
+                      "fill": "#2A1540",
+                      "cornerRadius": 12,
+                      "padding": [
+                        0,
+                        20
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Cg8ak",
+                          "fill": "$text-primary",
+                          "content": "https://mangadex.org/title/...",
+                          "fontFamily": "$font-main",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "R68Mb",
+                          "width": 24,
+                          "height": 24,
+                          "icon": "search",
+                          "library": "lucide",
+                          "fill": "$accent"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "x6p7vx",
+              "name": "Chapter List Section",
+              "width": "fill_container",
+              "fill": "$bg-panel",
+              "cornerRadius": 24,
+              "layout": "vertical",
+              "gap": 24,
+              "padding": 40,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cO6XF",
+                  "name": "List Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hrubZ",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "d9ppG3",
+                          "fill": "$text-primary",
+                          "content": "Available Chapters",
+                          "fontFamily": "$font-main",
+                          "fontSize": 20,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "snoNe",
+                          "fill": "$text-secondary",
+                          "content": "Found 42 chapters for this manga",
+                          "fontFamily": "$font-main",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ekPGQ",
+                      "name": "Sort",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "zmcsj",
+                          "fill": "$text-secondary",
+                          "content": "Sort: Descending",
+                          "fontFamily": "$font-main",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "UynOX",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "chevron-down",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "c8YFk",
+                  "name": "Chapters List Container",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "qWliw",
+                      "name": "Chapter Item 14",
+                      "width": "fill_container",
+                      "height": 80,
+                      "fill": "$bg-base",
+                      "cornerRadius": 16,
+                      "padding": [
+                        0,
+                        24
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "t7NDi",
+                          "gap": 24,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "UlLBY",
+                              "fill": "$accent",
+                              "content": "Ch. 14",
+                              "fontFamily": "$font-main",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "p6RHI",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "I66OON",
+                                  "fill": "$text-primary",
+                                  "content": "The Turning Point",
+                                  "fontFamily": "$font-main",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "y9tE1q",
+                                  "fill": "$text-secondary",
+                                  "content": "Released 2 days ago • EN",
+                                  "fontFamily": "$font-main",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "lj0F4",
+                          "name": "Read Button",
+                          "height": 40,
+                          "fill": "$accent",
+                          "cornerRadius": 20,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kak8H",
+                              "fill": "#FFFFFF",
+                              "content": "Read",
+                              "fontFamily": "$font-main",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TWXW1",
+                      "name": "Chapter Item 13",
+                      "width": "fill_container",
+                      "height": 80,
+                      "fill": "$bg-base",
+                      "cornerRadius": 16,
+                      "padding": [
+                        0,
+                        24
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "zk72l",
+                          "gap": 24,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "O0VdVl",
+                              "fill": "$text-secondary",
+                              "content": "Ch. 13",
+                              "fontFamily": "$font-main",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "D9qFhM",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "NrMYK",
+                                  "fill": "$text-primary",
+                                  "content": "A New Alliance",
+                                  "fontFamily": "$font-main",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "lERcB",
+                                  "fill": "$text-secondary",
+                                  "content": "Released 9 days ago • EN",
+                                  "fontFamily": "$font-main",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bD7O2",
+                          "name": "Read Button Secondary",
+                          "height": 40,
+                          "fill": "#333333",
+                          "cornerRadius": 20,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "c1UgMi",
+                              "fill": "$text-primary",
+                              "content": "Read",
+                              "fontFamily": "$font-main",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "OUgLW",
+                      "name": "Chapter Item 12",
+                      "width": "fill_container",
+                      "height": 80,
+                      "fill": "$bg-base",
+                      "cornerRadius": 16,
+                      "padding": [
+                        0,
+                        24
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "S7b6T2",
+                          "gap": 24,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Prhuk",
+                              "fill": "$text-secondary",
+                              "content": "Ch. 12",
+                              "fontFamily": "$font-main",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "D348fk",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "pby1S",
+                                  "fill": "$text-primary",
+                                  "content": "The Beginning",
+                                  "fontFamily": "$font-main",
+                                  "fontSize": 16,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "K7IwBK",
+                                  "fill": "$text-secondary",
+                                  "content": "Released 16 days ago • EN",
+                                  "fontFamily": "$font-main",
+                                  "fontSize": 13,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "RjkdC",
+                          "name": "Read Button Secondary",
+                          "height": 40,
+                          "fill": "#333333",
+                          "cornerRadius": 20,
+                          "padding": [
+                            0,
+                            24
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ymYHr",
+                              "fill": "$text-primary",
+                              "content": "Read",
+                              "fontFamily": "$font-main",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           ]
         }

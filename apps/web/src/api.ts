@@ -5,6 +5,7 @@ export type ChapterStatus = {
   failed?: number;
   error?: string;
   chapterId?: string;
+  readyPages?: number[]
 };
 
 export const api = {
@@ -24,5 +25,15 @@ export const api = {
       throw new Error('Failed to get status');
     }
     return res.json();
+  },
+
+  clearCache: async (): Promise<void> => {
+    const res = await fetch('/api/admin/clear-cache', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      throw new Error('Failed to clear cache');
+    }
   },
 };
