@@ -63,7 +63,9 @@ async def fetch_chapter_metadata(chapter_id: str) -> dict:
     for rel in data.get("data", {}).get("relationships", []):
         if rel.get("type") == "manga":
             manga_id = rel.get("id")
-            manga_title = rel.get("attributes", {}).get("title", {}).get("en") or "Unknown Title"
+            title_dict = rel.get("attributes", {}).get("title", {})
+            if title_dict:
+                manga_title = title_dict.get("en") or title_dict.get("ja-ro") or next(iter(title_dict.values()), "Unknown Title")
             break
             
     return {
