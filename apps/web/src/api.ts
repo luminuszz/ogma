@@ -12,17 +12,16 @@ export type LibraryManga = {
   id: string;
   title: string;
   chapter: string;
-  downloaded: boolean;
+  downloaded: number;
   total: number;
 };
 
 export const api = {
   getLibrary: async (): Promise<LibraryManga[]> => {
-    return [
-      { id: '1', title: 'One Piece', chapter: '1090', downloaded: true, total: 17 },
-      { id: '2', title: 'Jujutsu Kaisen', chapter: '230', downloaded: false, total: 19 },
-      { id: '3', title: 'Chainsaw Man', chapter: '140', downloaded: true, total: 21 },
-    ];
+    const res = await fetch('/api/manga/library');
+    if (!res.ok) throw new Error('Failed to get library');
+    const data = await res.json();
+    return data.library;
   },
 
   startDownload: async (chapterId: string): Promise<void> => {
