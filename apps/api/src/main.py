@@ -160,6 +160,40 @@ async def chapter_status(chapter_id: str):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/manga/library")
+async def get_library():
+    try:
+        from sqlalchemy import func, select
+
+        from src.db.database import AsyncSessionLocal
+        from src.db.models import Chapter, Manga, Page, TranslationStatus
+        
+        async with AsyncSessionLocal() as session:
+            stmt = select(Chapter, Manga.title).join(Manga, Chapter.manga_id == Manga.id)
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            library = []
+            for chapter, manga_title in rows:
+                pages_stmt = select(func.count(Page.id)).where(
+                    Page.chapter_id == chapter.id, 
+                    Page.status == TranslationStatus.DONE
+                )
+                pages_result = await session.execute(pages_stmt)
+                downloaded = pages_result.scalar() or 0
+                
+                library.append({
+                    "id": chapter.id,
+                    "title": manga_title,
+                    "chapter": chapter.chapter_number,
+                    "downloaded": downloaded,
+                    "total": chapter.total_pages
+                })
+                
+        return {"library": library}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/admin/clear-cache")
 async def clear_cache():
     try:
