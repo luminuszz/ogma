@@ -10,7 +10,7 @@ WORKER_ML_URL = os.getenv("WORKER_ML_URL", "http://manga-translator:5003")
 async def get_redis_settings():
     return RedisSettings.from_dsn(REDIS_URL)
 
-async def process_page(ctx, chapter_id: str, url: str, page_index: int):
+async def process_page(ctx, chapter_id: str, url: str, page_index: int, source_lang: str = "auto"):
     """Downloads the image from MangaDex and sends it to manga-image-translator."""
     try:
         # 1. Download image
@@ -19,8 +19,24 @@ async def process_page(ctx, chapter_id: str, url: str, page_index: int):
             resp.raise_for_status()
             image_bytes = resp.content
 
+        # Parse source_lang
+        lang_map = {
+            "en": "ENG", "eng": "ENG",
+            "es": "SPA", "es-la": "SPA", "spa": "SPA",
+            "pt-br": "POR", "pt": "POR", "por": "POR",
+            "ja": "JPN", "jp": "JPN", "jpn": "JPN",
+            "ko": "KOR", "kr": "KOR", "kor": "KOR",
+            "zh": "CHS", "zh-hk": "CHT"
+        }
+        
+        parsed_lang = "AUTO"
+        if source_lang.lower() in lang_map:
+            parsed_lang = lang_map[source_lang.lower()]
+        elif source_lang.upper() in ["ENG", "SPA", "JPN", "KOR", "CHS", "CHT", "RUS", "FRA", "GER", "ITA", "POR", "POL", "ARA"]:
+            parsed_lang = source_lang.upper()
+
         config = {
-               "source_lang": "SPA", # Mantém o idioma dinâmico (ENG/SPA)
+               "source_lang": parsed_lang, # Idioma mapeado e agora dinâmico
                "target_lang": "PTB",
                "translator": {
                    "translator": "custom_openai",

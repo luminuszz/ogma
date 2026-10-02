@@ -9,6 +9,7 @@ import { Modal } from '@/components/atoms/Modal';
 export function Home() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
+  const [sourceLang, setSourceLang] = useState('auto');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
@@ -34,7 +35,7 @@ export function Home() {
         const data = await res.json();
         setChapters(data.chapters);
       } else {
-        await startDownload.mutateAsync(extractedId);
+        await startDownload.mutateAsync({ chapterId: extractedId, sourceLang });
         setIsSearchModalOpen(false);
         navigate(`/reader/${encodeURIComponent(extractedId)}`);
       }
@@ -116,6 +117,23 @@ export function Home() {
             />
           </div>
 
+          <div className="flex items-center justify-between">
+            <label className="text-foreground-muted text-sm">Idioma da Imagem (Source):</label>
+            <select
+              value={sourceLang}
+              onChange={(e) => setSourceLang(e.target.value)}
+              className="bg-base border border-panel-light rounded-lg py-2 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              disabled={isLoading}
+            >
+              <option value="auto">Auto (MangaDex)</option>
+              <option value="ENG">Inglês</option>
+              <option value="SPA">Espanhol</option>
+              <option value="JPN">Japonês</option>
+              <option value="KOR">Coreano</option>
+              <option value="POR">Português</option>
+            </select>
+          </div>
+
           {error && <div className="p-3 rounded-lg bg-red-500/10 text-red-400 text-sm">{error}</div>}
 
           <button
@@ -135,7 +153,7 @@ export function Home() {
                 key={chapter.id}
                 onClick={async () => {
                   setIsSearchModalOpen(false);
-                  await startDownload.mutateAsync(chapter.id);
+                  await startDownload.mutateAsync({ chapterId: chapter.id, sourceLang });
                   navigate(`/reader/${encodeURIComponent(chapter.id)}`);
                 }}
                 className="w-full text-left p-3 rounded-lg bg-base border border-panel-light hover:border-primary transition-colors flex justify-between items-center group"

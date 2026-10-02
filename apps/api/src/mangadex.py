@@ -55,6 +55,7 @@ async def fetch_chapter_metadata(chapter_id: str) -> dict:
         
     attrs = data.get("data", {}).get("attributes", {})
     chapter_number = attrs.get("chapter") or "N/A"
+    language = attrs.get("translatedLanguage") or "auto"
     
     # Extract Manga Title from relationships
     manga_id = chapter_id
@@ -68,5 +69,6 @@ async def fetch_chapter_metadata(chapter_id: str) -> dict:
     return {
         "manga_id": manga_id,
         "title": manga_title,
-        "chapter": chapter_number
+        "chapter": chapter_number,
+        "language": language
     }

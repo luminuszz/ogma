@@ -24,8 +24,12 @@ export const api = {
     return data.library;
   },
 
-  startDownload: async (chapterId: string): Promise<void> => {
-    const res = await fetch(`/api/manga/${chapterId}`, {
+  startDownload: async (params: { chapterId: string; sourceLang?: string }): Promise<void> => {
+    const url = new URL(`/api/manga/${params.chapterId}`, window.location.origin);
+    if (params.sourceLang) {
+      url.searchParams.append('source_lang', params.sourceLang);
+    }
+    const res = await fetch(url.toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });

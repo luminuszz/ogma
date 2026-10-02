@@ -25,7 +25,7 @@ async def get_chapters(manga_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/manga/{chapter_id}")
-async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
+async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, source_lang: str = "auto"):
     try:
         pages = await fetch_chapter_pages(chapter_id)
         meta = await fetch_chapter_metadata(chapter_id)
@@ -83,12 +83,15 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
             if not pages:
                 return
                 
+            lang_to_use = source_lang if source_lang != "auto" else meta.get("language", "auto")
+
             # Prioritize the first page by enqueuing and giving it a head start
             await redis_pool.enqueue_job(
                 "process_page",
                 chapter_id,
                 pages[0]["url"],
                 pages[0]["pageIndex"],
+                lang_to_use,
                 _job_id=f"page_{chapter_id}_{pages[0]['pageIndex']}"
             )
             
@@ -102,6 +105,7 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
                     chapter_id,
                     page["url"],
                     page["pageIndex"],
+                    lang_to_use,
                     _job_id=f"page_{chapter_id}_{page['pageIndex']}"
                 )
 
