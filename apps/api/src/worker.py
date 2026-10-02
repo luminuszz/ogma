@@ -95,6 +95,17 @@ async def process_page(ctx, chapter_id: str, url: str, page_index: int, source_l
 
     except Exception as e:
         print(f"Failed to process page {page_index}: {e}")
+        from sqlalchemy import select
+        from src.db.database import AsyncSessionLocal
+        from src.db.models import Page, TranslationStatus
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(Page).where(Page.chapter_id == chapter_id, Page.page_index == page_index)
+            )
+            page_obj = result.scalar_one_or_none()
+            if page_obj:
+                page_obj.status = TranslationStatus.ERROR # type: ignore
+                await session.commit()
         raise
 
 class WorkerSettings:
