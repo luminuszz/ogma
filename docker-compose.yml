@@ -3,22 +3,8 @@ name: ogma
 volumes:
   ogma_data:
     driver: local
-  db_data:
-    driver: local
 
 services:
-  db:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=ogma
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-
   api:
     build:
       context: .
@@ -30,6 +16,11 @@ services:
       - WORKER_ML_URL=http://manga-translator:5003
       - PORT=3031
       - DATABASE_URL=${DATABASE_URL}
+      - R2_ENDPOINT_URL=${R2_ENDPOINT_URL}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
     restart: unless-stopped
 
   api-worker:
@@ -41,6 +32,11 @@ services:
       - REDIS_URL=${REDIS_URL}
       - WORKER_ML_URL=http://manga-translator:5003
       - DATABASE_URL=${DATABASE_URL}
+      - R2_ENDPOINT_URL=${R2_ENDPOINT_URL}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
     depends_on:
       - manga-translator
     extra_hosts:
