@@ -62,20 +62,28 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, so
                 chapter_obj.total_pages = len(pages) # type: ignore
                 chapter_obj.status = TranslationStatus.PROCESSING # type: ignore
                 
+            # Fetch all existing pages for this chapter in one query to avoid N+1 problem
+            existing_pages_result = await session.execute(
+                select(Page).where(Page.chapter_id == chapter_id)
+            )
+            existing_pages = {p.page_index: p for p in existing_pages_result.scalars().all()}
+            
+            pages_to_add = []
             for page in pages:
-                page_result = await session.execute(
-                    select(Page).where(Page.chapter_id == chapter_id, Page.page_index == page["pageIndex"])
-                )
-                page_obj = page_result.scalar_one_or_none()
-                if not page_obj:
-                    page_obj = Page(
-                        chapter_id=chapter_id,
-                        page_index=page["pageIndex"],
-                        status=TranslationStatus.PENDING
-                    )
-                    session.add(page_obj)
+                page_idx = page["pageIndex"]
+                if page_idx in existing_pages:
+                    existing_pages[page_idx].status = TranslationStatus.PENDING # type: ignore
                 else:
-                    page_obj.status = TranslationStatus.PENDING # type: ignore
+                    pages_to_add.append(
+                        Page(
+                            chapter_id=chapter_id,
+                            page_index=page_idx,
+                            status=TranslationStatus.PENDING
+                        )
+                    )
+            
+            if pages_to_add:
+                session.add_all(pages_to_add)
             await session.commit()
 
         async def enqueue_all(pages):
