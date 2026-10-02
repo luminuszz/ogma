@@ -69,10 +69,14 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, so
             existing_pages = {p.page_index: p for p in existing_pages_result.scalars().all()}
             
             pages_to_add = []
+            pages_to_enqueue = []
+            
             for page in pages:
                 page_idx = page["pageIndex"]
                 if page_idx in existing_pages:
-                    existing_pages[page_idx].status = TranslationStatus.PENDING # type: ignore
+                    if existing_pages[page_idx].status != TranslationStatus.DONE:
+                        existing_pages[page_idx].status = TranslationStatus.PENDING # type: ignore
+                        pages_to_enqueue.append(page)
                 else:
                     pages_to_add.append(
                         Page(
@@ -81,14 +85,15 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, so
                             status=TranslationStatus.PENDING
                         )
                     )
+                    pages_to_enqueue.append(page)
             
             if pages_to_add:
                 session.add_all(pages_to_add)
             await session.commit()
 
-        async def enqueue_all(pages):
+        async def enqueue_all(pages_to_process):
             import asyncio
-            if not pages:
+            if not pages_to_process:
                 return
                 
             lang_to_use = source_lang if source_lang != "auto" else meta.get("language", "auto")
@@ -97,17 +102,17 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, so
             await redis_pool.enqueue_job(
                 "process_page",
                 chapter_id,
-                pages[0]["url"],
-                pages[0]["pageIndex"],
+                pages_to_process[0]["url"],
+                pages_to_process[0]["pageIndex"],
                 lang_to_use,
-                _job_id=f"page_{chapter_id}_{pages[0]['pageIndex']}"
+                _job_id=f"page_{chapter_id}_{pages_to_process[0]['pageIndex']}"
             )
             
             # Pequeno delay para garantir que a primeira página seja pega pelo worker primeiro
             await asyncio.sleep(0.1)
 
             # Enfileira o restante sequencialmente para manter a ordem de prioridade
-            for page in pages[1:]:
+            for page in pages_to_process[1:]:
                 await redis_pool.enqueue_job(
                     "process_page",
                     chapter_id,
@@ -117,8 +122,8 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, so
                     _job_id=f"page_{chapter_id}_{page['pageIndex']}"
                 )
 
-        # Enqueue jobs em background concorrentemente
-        background_tasks.add_task(enqueue_all, pages)
+        # Enqueue jobs em background concorrentemente apenas para as páginas faltantes
+        background_tasks.add_task(enqueue_all, pages_to_enqueue)
             
         return {
             "status": "queued",
@@ -156,9 +161,9 @@ async def chapter_status(chapter_id: str):
             completed = len(ready_pages)
             
             status = "processing"
-            if completed == total and total > 0:
-                status = "done"
-                chapter_obj.status = TranslationStatus.DONE # type: ignore
+            if completed + failed == total and total > 0:
+                status = "done" if failed == 0 else "error"
+                chapter_obj.status = TranslationStatus.DONE if failed == 0 else TranslationStatus.ERROR # type: ignore
                 await session.commit()
                 
             return {
