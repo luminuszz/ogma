@@ -2,7 +2,6 @@ from pathlib import Path
 
 from arq import create_pool
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
 
 from src.mangadex import fetch_chapter_pages, fetch_manga_feed
 from src.worker import get_redis_settings
@@ -15,8 +14,7 @@ async def startup():
     global redis_pool
     redis_pool = await create_pool(await get_redis_settings())
     
-# Mount static files just like Express
-app.mount("/data", StaticFiles(directory="/data"), name="data")
+
 
 @app.get("/api/manga/{manga_id}/chapters")
 async def get_chapters(manga_id: str):
@@ -31,6 +29,38 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
     try:
         pages = await fetch_chapter_pages(chapter_id)
         
+        from sqlalchemy import select
+
+        from src.db.database import AsyncSessionLocal
+        from src.db.models import Chapter, Page, TranslationStatus
+        
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+            chapter_obj = result.scalar_one_or_none()
+            
+            if not chapter_obj:
+                chapter_obj = Chapter(id=chapter_id, total_pages=len(pages), status=TranslationStatus.PROCESSING)
+                session.add(chapter_obj)
+            else:
+                chapter_obj.total_pages = len(pages) # type: ignore
+                chapter_obj.status = TranslationStatus.PROCESSING # type: ignore
+                
+            for page in pages:
+                page_result = await session.execute(
+                    select(Page).where(Page.chapter_id == chapter_id, Page.page_index == page["pageIndex"])
+                )
+                page_obj = page_result.scalar_one_or_none()
+                if not page_obj:
+                    page_obj = Page(
+                        chapter_id=chapter_id,
+                        page_index=page["pageIndex"],
+                        status=TranslationStatus.PENDING
+                    )
+                    session.add(page_obj)
+                else:
+                    page_obj.status = TranslationStatus.PENDING # type: ignore
+            await session.commit()
+
         async def enqueue_all(pages):
             import asyncio
             if not pages:
@@ -61,10 +91,6 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
         # Enqueue jobs em background concorrentemente
         background_tasks.add_task(enqueue_all, pages)
             
-        # Store total pages in Redis so the status endpoint can read it reliably
-        # without querying heavy BullMQ/ARQ dependencies
-        await redis_pool.set(f"chapter_total_{chapter_id}", len(pages))  # type: ignore
-            
         return {
             "status": "queued",
             "chapterId": chapter_id,
@@ -76,34 +102,44 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks):
 @app.get("/api/manga/{chapter_id}/status")
 async def chapter_status(chapter_id: str):
     try:
-        total_str = await redis_pool.get(f"chapter_total_{chapter_id}")  # type: ignore
-        if not total_str:
-            return {"chapterId": chapter_id, "total": 0, "completed": 0, "failed": 0, "status": "not_found"}
-            
-        total = int(total_str)
+        from sqlalchemy import select
+
+        from src.db.database import AsyncSessionLocal
+        from src.db.models import Chapter, Page, TranslationStatus
         
-        # Count processed pages on disk
-        data_dir = Path("/data") / chapter_id
-        ready_pages = []
-        if data_dir.exists() and total > 0:
-            for i in range(total):
-                if (data_dir / f"{i}.png").exists():
-                    ready_pages.append(i)
-                    
-        completed = len(ready_pages)
-        
-        status = "processing"
-        if completed == total and total > 0:
-            status = "done"
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+            chapter_obj = result.scalar_one_or_none()
             
-        return {
-            "chapterId": chapter_id,
-            "total": total,
-            "completed": completed,
-            "failed": 0,
-            "status": status,
-            "readyPages": ready_pages
-        }
+            if not chapter_obj:
+                return {"chapterId": chapter_id, "total": 0, "completed": 0, "failed": 0, "status": "not_found", "readyPages": []}
+                
+            total = chapter_obj.total_pages
+            
+            # Count done pages
+            pages_result = await session.execute(
+                select(Page).where(Page.chapter_id == chapter_id)
+            )
+            pages = pages_result.scalars().all()
+            
+            ready_pages = [p.page_index for p in pages if p.status == TranslationStatus.DONE]
+            failed = len([p for p in pages if p.status == TranslationStatus.ERROR])
+            completed = len(ready_pages)
+            
+            status = "processing"
+            if completed == total and total > 0:
+                status = "done"
+                chapter_obj.status = TranslationStatus.DONE # type: ignore
+                await session.commit()
+                
+            return {
+                "chapterId": chapter_id,
+                "total": total,
+                "completed": completed,
+                "failed": failed,
+                "status": status,
+                "readyPages": ready_pages
+            }
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
 

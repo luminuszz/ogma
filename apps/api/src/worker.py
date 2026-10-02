@@ -1,6 +1,5 @@
 import json
 import os
-from pathlib import Path
 
 import httpx
 from arq.connections import RedisSettings
@@ -56,15 +55,27 @@ async def process_page(ctx, chapter_id: str, url: str, page_index: int):
             response.raise_for_status()
             translated_bytes = response.content
 
-        # 3. Save to disk for the frontend
-        data_dir = Path("/data") / chapter_id
-        data_dir.mkdir(parents=True, exist_ok=True)
+        # 3. Save to R2 and update database
+        from sqlalchemy import select
 
-        final_path = data_dir / f"{page_index}.png"
-        with open(final_path, "wb") as f:  # noqa: ASYNC230
-            f.write(translated_bytes)
+        from src.db.database import AsyncSessionLocal
+        from src.db.models import Page, TranslationStatus
+        from src.services.storage import upload_image_to_r2
+        
+        destination_path = f"{chapter_id}/{page_index}.png"
+        image_url = await upload_image_to_r2(translated_bytes, destination_path)
+        
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(Page).where(Page.chapter_id == chapter_id, Page.page_index == page_index)
+            )
+            page_obj = result.scalar_one_or_none()
+            if page_obj:
+                page_obj.status = TranslationStatus.DONE # type: ignore
+                page_obj.image_url = image_url # type: ignore
+                await session.commit()
 
-        return {"status": "ok", "path": str(final_path)}
+        return {"status": "ok", "url": image_url}
 
     except Exception as e:
         print(f"Failed to process page {page_index}: {e}")

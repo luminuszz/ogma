@@ -1,5 +1,7 @@
 import os
+
 import aioboto3
+
 
 async def upload_image_to_r2(file_bytes: bytes, destination_path: str) -> str:
     """
@@ -29,5 +31,5 @@ async def upload_image_to_r2(file_bytes: bytes, destination_path: str) -> str:
         )
         
     # Ensure no double slashes if public_url ends with slash
-    base_url = public_url.rstrip("/")
+    base_url = public_url.rstrip("/") if public_url else "" # type: ignore
     return f"{base_url}/{destination_path}"
