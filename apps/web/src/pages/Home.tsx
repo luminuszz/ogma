@@ -163,7 +163,7 @@ export function Home() {
                   <span className="text-sm text-foreground-muted truncate">{chapter.title || 'Sem título'}</span>
                 </div>
                 <span className="text-xs uppercase bg-panel px-2 py-1 rounded text-foreground-muted whitespace-nowrap group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                  {chapter.language?.[0] || 'UNK'}
+                  {chapter.language || 'UNK'}
                 </span>
               </button>
             ))}
