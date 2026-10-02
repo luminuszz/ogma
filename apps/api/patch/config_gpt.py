@@ -52,10 +52,11 @@ class ConfigGPT:
         '- Refine based on the conclusions from the second step.\n'
         
         '## Translation Rules\n'  
-        '- Translate line by line, maintaining accuracy but prioritizing NATURAL AND FLUENT {to_lang}.\n'          
-        '- AVOID PORTUÑOL / SPANGLISH: Never use archaic, literal translations of Spanish verbs/words if they sound unnatural in {to_lang}.\n'
-        '- NEVER use inverted Spanish punctuation marks (like ¡ or ¿) in the final translation.\n'
-        '- Preserve original gibberish or sound effects without translation.\n'            
+        '- Translate line by line, prioritizing a HIGHLY NATURAL, FLUENT, and LOCALIZED text in {to_lang}.\n'          
+        '- AVOID LITERAL TRANSLATIONS: Never use archaic or literal word-for-word structures from the source language if they sound unnatural or robotic in {to_lang}.\n'
+        '- PUNCTUATION & GRAMMAR: Adapt all punctuation to standard {to_lang} rules. Never keep foreign punctuation marks (like ¡, ¿, or Asian quotation marks) in the final output.\n'
+        '- CONTEXT & HONORIFICS: Adapt cultural references and honorifics (like -san, -chan, oppa) appropriately for the {to_lang} audience without losing the emotional weight.\n'
+        '- Preserve original gibberish, screams, or sound effects without translating them.\n'            
         '- Output each segment with its prefix (<|number|> format exactly) and only provide the translation without raw text.\n'  
         '- Translate content only—no additional interpretation or commentary.\n'  
         
