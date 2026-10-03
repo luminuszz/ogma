@@ -51,6 +51,11 @@ class ConfigGPT:
         '- Determine appropriate pronouns (他/她/我/你/你们/he/she/me/you) from context; do not add pronouns that do not exist in the original text.\n'  
         '- Refine based on the conclusions from the second step.\n'
         
+        '4. FINAL CONCORDANCE & POLISH (CRITICAL STEP): \n'
+        '- Review the refined translation specifically for grammatical agreement (gender, number, verb tenses).\n'
+        '- Fix awkward phrasing, robotic verb conjugations, and literal idioms (e.g., never translate "qué tanto" as "quão muito" in Portuguese; use "o quanto"). Rewrite the sentence so it flows perfectly as a native {to_lang} speaker would naturally say it.\n'
+        '- Ensure ABSOLUTELY NO foreign words or untranslated fragments (like "aun mas") remain in the final output.\n'
+        
         '## Translation Rules\n'  
         '- Translate line by line, prioritizing a HIGHLY NATURAL, FLUENT, and LOCALIZED text in {to_lang}.\n'          
         '- AVOID LITERAL TRANSLATIONS: Never use archaic or literal word-for-word structures from the source language if they sound unnatural or robotic in {to_lang}.\n'
