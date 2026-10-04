@@ -126,34 +126,33 @@ export function Home() {
     <div className="flex-1 flex flex-col items-center p-4 max-w-4xl mx-auto w-full gap-8 mt-10">
 
       {/* HEADER & ACTIONS */}
-      <div className="w-full flex justify-between items-end mb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex items-center gap-2">
-            <BookMarked className="text-primary" size={32} />
-            <h2 className="text-3xl font-bold text-foreground">Sua Biblioteca</h2>
-          </div>
-
-          <div className="relative flex items-center">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-foreground-muted">
-              <Search size={16} />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar mangá..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-base border border-panel-light rounded-full py-1.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all w-full sm:w-48 lg:w-64"
-            />
-          </div>
+      <div className="w-full flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <BookMarked className="text-primary" size={32} />
+          <h2 className="text-3xl font-bold text-foreground">Sua Biblioteca</h2>
         </div>
-
+        
         <button
           onClick={() => setIsSearchModalOpen(true)}
-          className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full flex items-center justify-center transition-colors shadow-lg"
+          className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full flex items-center justify-center transition-colors shadow-lg shrink-0"
         >
           <Plus size={18} className="mr-2" />
           Baixar Novo
         </button>
+      </div>
+
+      {/* SEARCH BAR */}
+      <div className="w-full relative mb-8">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-foreground-muted">
+          <Search size={18} />
+        </div>
+        <input
+          type="text"
+          placeholder="Buscar mangá na sua biblioteca..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-base border border-panel-light rounded-xl py-4 pl-12 pr-4 text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-sm"
+        />
       </div>
 
       {/* LIBRARY SECTION */}
