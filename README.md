@@ -50,6 +50,7 @@ A tradução de mangás e webtoons independentes sempre foi um processo lento e 
 
    # Inteligência Artificial (Tradução LLM)
    OPENROUTER_API_KEY=sk-or-v1-...
+   CUSTOM_OPENAI_MODEL=nousresearch/hermes-3-llama-3.1-70b
    ```
 
 3. **Inicie os Contêineres:**
