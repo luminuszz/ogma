@@ -9,13 +9,20 @@ interface LibraryCardProps {
   total: number;
 }
 
+import toast from 'react-hot-toast';
+
 export const LibraryCard = ({ id, chapter, downloaded, total }: LibraryCardProps) => {
   const deleteChapter = useDeleteChapter();
 
   const handleDelete = () => {
-    if (confirm("Tem certeza que deseja deletar este capítulo? Ele será removido localmente e da nuvem.")) {
-      deleteChapter.mutate(id);
-    }
+    deleteChapter.mutate(id, {
+      onSuccess: () => {
+        toast.success('Capítulo deletado!');
+      },
+      onError: () => {
+        toast.error('Erro ao deletar capítulo.');
+      }
+    });
   };
 
   const isTranslating = total === 0 || downloaded < total;

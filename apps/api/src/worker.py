@@ -28,7 +28,7 @@ async def process_page(ctx, chapter_id: str, url: str, page_index: int, source_l
             "ko": "KOR", "kr": "KOR", "kor": "KOR",
             "zh": "CHS", "zh-hk": "CHT"
         }
-        
+
         parsed_lang = "AUTO"
         if source_lang.lower() in lang_map:
             parsed_lang = lang_map[source_lang.lower()]
@@ -77,10 +77,10 @@ async def process_page(ctx, chapter_id: str, url: str, page_index: int, source_l
         from src.db.database import AsyncSessionLocal
         from src.db.models import Page, TranslationStatus
         from src.services.storage import upload_image_to_r2
-        
+
         destination_path = f"{chapter_id}/{page_index}.png"
         image_url = await upload_image_to_r2(translated_bytes, destination_path)
-        
+
         async with AsyncSessionLocal() as session:
             result = await session.execute(
                 select(Page).where(Page.chapter_id == chapter_id, Page.page_index == page_index)
@@ -110,5 +110,5 @@ async def process_page(ctx, chapter_id: str, url: str, page_index: int, source_l
 
 class WorkerSettings:
     functions: list = [process_page]  # noqa: RUF012
-    max_jobs = 1
+    max_jobs = 3
     redis_settings = RedisSettings.from_dsn(REDIS_URL)

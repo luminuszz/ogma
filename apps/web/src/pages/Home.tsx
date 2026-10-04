@@ -16,6 +16,7 @@ export function Home() {
   const [error, setError] = useState<string | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [selectedChapters, setSelectedChapters] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const navigate = useNavigate();
   const startDownload = useStartDownload();
@@ -33,7 +34,7 @@ export function Home() {
       return acc;
     }, {});
 
-    return Object.entries(groups).map(([mangaTitle, chapters]: [string, any]) => {
+    let result = Object.entries(groups).map(([mangaTitle, chapters]: [string, any]) => {
       const sortedChapters = [...chapters].sort((a, b) => {
         const numA = parseFloat(a.chapter) || 0;
         const numB = parseFloat(b.chapter) || 0;
@@ -41,7 +42,14 @@ export function Home() {
       });
       return { mangaTitle, chapters: sortedChapters };
     });
-  }, [libraryData]);
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(item => item.mangaTitle.toLowerCase().includes(query));
+    }
+
+    return result;
+  }, [libraryData, searchQuery]);
 
 
 
@@ -91,9 +99,12 @@ export function Home() {
     setSelectedChapters(newSelected);
   };
 
+import toast from 'react-hot-toast';
+
   const handleBulkDownload = async () => {
     setIsLoading(true);
     try {
+      const count = selectedChapters.size;
       await startBulkDownload.mutateAsync({
         chapterIds: Array.from(selectedChapters),
         sourceLang
@@ -101,8 +112,10 @@ export function Home() {
       setSelectedChapters(new Set());
       setIsSearchModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['library'] });
+      toast.success(`${count} capítulos adicionados à fila!`);
     } catch (err: any) {
       setError(err.message || 'Failed to start bulk download');
+      toast.error('Erro ao adicionar capítulos à fila.');
     } finally {
       setIsLoading(false);
     }
@@ -113,9 +126,24 @@ export function Home() {
 
       {/* HEADER & ACTIONS */}
       <div className="w-full flex justify-between items-end mb-4">
-        <div className="flex items-center gap-2">
-          <BookMarked className="text-primary" size={32} />
-          <h2 className="text-3xl font-bold text-foreground">Sua Biblioteca</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <BookMarked className="text-primary" size={32} />
+            <h2 className="text-3xl font-bold text-foreground">Sua Biblioteca</h2>
+          </div>
+
+          <div className="relative flex items-center">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-foreground-muted">
+              <Search size={16} />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar mangá..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-base border border-panel-light rounded-full py-1.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all w-full sm:w-48 lg:w-64"
+            />
+          </div>
         </div>
 
         <button
