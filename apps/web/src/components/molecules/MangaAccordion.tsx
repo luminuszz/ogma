@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { LibraryCard } from './LibraryCard';
 
 interface MangaAccordionProps {
@@ -22,24 +22,30 @@ export const MangaAccordion = ({ mangaTitle, chapters }: MangaAccordionProps) =>
             {chapters.length} {chapters.length === 1 ? 'capítulo' : 'capítulos'}
           </span>
         </div>
-        <div className="text-foreground-muted bg-panel/50 p-2 rounded-full">
-          {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        <div className={`text-foreground-muted bg-panel/50 p-2 rounded-full transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+          <ChevronDown size={20} />
         </div>
       </button>
       
-      {isOpen && (
-        <div className="p-5 flex flex-col gap-4 bg-panel/10 border-t border-panel-light">
-          {chapters.map((item: any) => (
-            <LibraryCard
-              key={item.id}
-              id={item.id}
-              chapter={item.chapter}
-              downloaded={typeof item.downloaded === 'boolean' ? (item.downloaded ? item.total : 0) : item.downloaded}
-              total={item.total}
-            />
-          ))}
+      <div 
+        className={`grid transition-all duration-300 ease-in-out ${
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="p-5 flex flex-col gap-4 bg-panel/10 border-t border-panel-light">
+            {chapters.map((item: any) => (
+              <LibraryCard
+                key={item.id}
+                id={item.id}
+                chapter={item.chapter}
+                downloaded={typeof item.downloaded === 'boolean' ? (item.downloaded ? item.total : 0) : item.downloaded}
+                total={item.total}
+              />
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
