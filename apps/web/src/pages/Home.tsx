@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, BookMarked, Plus, CheckSquare, Square } from 'lucide-react';
 import { useStartDownload, useLibrary, useStartBulkDownload } from '@/hooks/useManga';
 import { useQueryClient } from '@tanstack/react-query';
-import { LibraryCard } from '@/components/molecules/LibraryCard';
+
+import { MangaAccordion } from '@/components/molecules/MangaAccordion';
 import { Loader } from '@/components/atoms/Loader';
 import { Modal } from '@/components/atoms/Modal';
 
@@ -93,22 +94,11 @@ export function Home() {
               });
 
               return (
-                <div key={mangaTitle} className="flex flex-col gap-4">
-                  <h3 className="text-2xl font-bold text-foreground border-b border-panel-light pb-2 mb-2">
-                    {mangaTitle}
-                  </h3>
-                  <div className="flex flex-col gap-4">
-                    {sortedChapters.map((item: any) => (
-                      <LibraryCard
-                        key={item.id}
-                        id={item.id}
-                        chapter={item.chapter}
-                        downloaded={typeof item.downloaded === 'boolean' ? (item.downloaded ? item.total : 0) : item.downloaded}
-                        total={item.total}
-                      />
-                    ))}
-                  </div>
-                </div>
+                <MangaAccordion 
+                  key={mangaTitle} 
+                  mangaTitle={mangaTitle} 
+                  chapters={sortedChapters} 
+                />
               );
             })}
           </div>
