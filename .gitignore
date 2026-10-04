@@ -3,6 +3,9 @@ node_modules/
 dist/
 build/
 coverage/
+.superpowers
+.ruff_cache
+.mypy_cache
 
 # Python
 __pycache__/
@@ -23,3 +26,6 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 graphify-out/
+
+
+docs/superpowers

@@ -38,7 +38,7 @@ export const useChapterStatus = (chapterId: string | undefined) => {
       if (data?.status === 'done' || data?.status === 'error') {
         return false;
       }
-      return 1000;
+      return 2000;
     },
   });
 };
