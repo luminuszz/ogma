@@ -54,7 +54,7 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - CUSTOM_OPENAI_API_KEY=${OPENROUTER_API_KEY}
       - CUSTOM_OPENAI_API_BASE=https://openrouter.ai/api/v1
-      - CUSTOM_OPENAI_MODEL=nousresearch/hermes-3-llama-3.1-70b
+      - CUSTOM_OPENAI_MODEL=${CUSTOM_OPENAI_MODEL:-nousresearch/hermes-3-llama-3.1-70b}
     networks:
       - default
       - ia_networking
