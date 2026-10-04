@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, BookMarked, Plus, CheckSquare, Square } from 'lucide-react';
 import { useStartDownload, useLibrary, useStartBulkDownload } from '@/hooks/useManga';
@@ -22,6 +22,26 @@ export function Home() {
   const startBulkDownload = useStartBulkDownload();
   const queryClient = useQueryClient();
   const { data: libraryData, isLoading: libraryLoading } = useLibrary();
+
+  const groupedManga = useMemo(() => {
+    if (!libraryData) return [];
+    
+    const groups = libraryData.reduce((acc: any, curr: any) => {
+      const groupTitle = curr.title || 'Obras Desconhecidas';
+      if (!acc[groupTitle]) acc[groupTitle] = [];
+      acc[groupTitle].push(curr);
+      return acc;
+    }, {});
+
+    return Object.entries(groups).map(([mangaTitle, chapters]: [string, any]) => {
+      const sortedChapters = [...chapters].sort((a, b) => {
+        const numA = parseFloat(a.chapter) || 0;
+        const numB = parseFloat(b.chapter) || 0;
+        return numA - numB;
+      });
+      return { mangaTitle, chapters: sortedChapters };
+    });
+  }, [libraryData]);
 
 
 
@@ -53,6 +73,40 @@ export function Home() {
       setIsLoading(false);
     }
   };
+  const handleToggleSelectAll = () => {
+    if (selectedChapters.size === chapters.length) {
+      setSelectedChapters(new Set());
+    } else {
+      setSelectedChapters(new Set(chapters.map((c: any) => c.id)));
+    }
+  };
+
+  const handleToggleChapter = (chapterId: string) => {
+    const newSelected = new Set(selectedChapters);
+    if (newSelected.has(chapterId)) {
+      newSelected.delete(chapterId);
+    } else {
+      newSelected.add(chapterId);
+    }
+    setSelectedChapters(newSelected);
+  };
+
+  const handleBulkDownload = async () => {
+    setIsLoading(true);
+    try {
+      await startBulkDownload.mutateAsync({
+        chapterIds: Array.from(selectedChapters),
+        sourceLang
+      });
+      setSelectedChapters(new Set());
+      setIsSearchModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+    } catch (err: any) {
+      setError(err.message || 'Failed to start bulk download');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col items-center p-4 max-w-4xl mx-auto w-full gap-8 mt-10">
@@ -79,28 +133,13 @@ export function Home() {
           <Loader message="Carregando obras salvas..." />
         ) : libraryData && libraryData.length > 0 ? (
           <div className="flex flex-col gap-10">
-            {Object.entries(
-              libraryData.reduce((acc: any, curr: any) => {
-                const groupTitle = curr.title || 'Obras Desconhecidas';
-                if (!acc[groupTitle]) acc[groupTitle] = [];
-                acc[groupTitle].push(curr);
-                return acc;
-              }, {})
-            ).map(([mangaTitle, chapters]: [string, any]) => {
-              const sortedChapters = [...chapters].sort((a, b) => {
-                const numA = parseFloat(a.chapter) || 0;
-                const numB = parseFloat(b.chapter) || 0;
-                return numA - numB;
-              });
-
-              return (
-                <MangaAccordion 
-                  key={mangaTitle} 
-                  mangaTitle={mangaTitle} 
-                  chapters={sortedChapters} 
-                />
-              );
-            })}
+            {groupedManga.map(({ mangaTitle, chapters }) => (
+              <MangaAccordion 
+                key={mangaTitle} 
+                mangaTitle={mangaTitle} 
+                chapters={chapters} 
+              />
+            ))}
           </div>
         ) : (
           <div className="p-12 text-center text-foreground-muted bg-panel border border-panel-light rounded-2xl flex flex-col items-center justify-center">
@@ -171,13 +210,7 @@ export function Home() {
               <h4 className="text-sm font-bold text-foreground">Capítulos Encontrados</h4>
               <button
                 type="button"
-                onClick={() => {
-                  if (selectedChapters.size === chapters.length) {
-                    setSelectedChapters(new Set());
-                  } else {
-                    setSelectedChapters(new Set(chapters.map(c => c.id)));
-                  }
-                }}
+                onClick={handleToggleSelectAll}
                 className="text-xs text-primary hover:underline"
               >
                 {selectedChapters.size === chapters.length ? 'Desmarcar todos' : 'Marcar todos'}
@@ -193,15 +226,7 @@ export function Home() {
                     type="checkbox"
                     className="hidden"
                     checked={selectedChapters.has(chapter.id)}
-                    onChange={() => {
-                      const newSelected = new Set(selectedChapters);
-                      if (newSelected.has(chapter.id)) {
-                        newSelected.delete(chapter.id);
-                      } else {
-                        newSelected.add(chapter.id);
-                      }
-                      setSelectedChapters(newSelected);
-                    }}
+                    onChange={() => handleToggleChapter(chapter.id)}
                   />
                   <div className="mr-3 text-primary">
                     {selectedChapters.has(chapter.id) ? <CheckSquare size={18} /> : <Square size={18} className="text-foreground-muted" />}
@@ -220,22 +245,7 @@ export function Home() {
               <div className="sticky bottom-0 pt-2 bg-panel/80 backdrop-blur-sm">
                 <button
                   type="button"
-                  onClick={async () => {
-                    setIsLoading(true);
-                    try {
-                      await startBulkDownload.mutateAsync({
-                        chapterIds: Array.from(selectedChapters),
-                        sourceLang
-                      });
-                      setSelectedChapters(new Set());
-                      setIsSearchModalOpen(false);
-                      queryClient.invalidateQueries({ queryKey: ['library'] });
-                    } catch (err: any) {
-                      setError(err.message || 'Failed to start bulk download');
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  }}
+                  onClick={handleBulkDownload}
                   disabled={isLoading}
                   className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors shadow-lg"
                 >
