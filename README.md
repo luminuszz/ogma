@@ -74,13 +74,10 @@ A tradução de mangás e webtoons independentes sempre foi um processo lento e 
 > Exemplos de interface da aplicação:
 
 ### A Biblioteca (Home Screen)
-(A interface lista suas obras renderizando os capítulos salvos em cache)
+<img src="public/assets/home.png" alt="Ogma Library" width="800">
 
-### Modal de Busca (Tradução Automática)
-(Basta inserir o link e as informações de capítulos, idiomas e status são puxadas direto do MangaDex)
-
-### O Leitor (Reader)
-(Layout expansível com carregamento progressivo das páginas recém traduzidas via Cloudflare R2)
+### Modal de Busca e Resultados
+<img src="public/assets/modal.png" alt="Ogma Search Modal" width="800">
 
 ---
 *Ogma - Criado com foco na arte de ler histórias sem barreiras linguísticas.*
