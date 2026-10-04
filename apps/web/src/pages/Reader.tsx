@@ -24,16 +24,28 @@ export function Reader() {
   const handleOpenSettings = () => setIsSettingsOpen(true);
   const handleCloseSettings = () => setIsSettingsOpen(false);
 
-
-
-
   const isPolling = status ? status.status !== 'done' && status.status !== 'error' : true;
   const error = queryError?.message || (status?.status === 'error' ? status.error : null);
 
+  const currentChapterData = useMemo(() => {
+    return library?.find(item => item.id === chapterId);
+  }, [library, chapterId]);
+
   const currentChapterTitle = useMemo(() => {
-    const currentChapter = library?.find(item => item.id === chapterId)
-    return currentChapter ? `${currentChapter.title} - Capitulo: ${currentChapter.chapter.padStart(2, '0')}` : chapterId
-  }, [library, chapterId])
+    return currentChapterData ? `${currentChapterData.title} - Capitulo: ${currentChapterData.chapter.padStart(2, '0')}` : chapterId;
+  }, [currentChapterData, chapterId]);
+
+  const { nextChapterId, prevChapterId } = useMemo(() => {
+    if (!library || !currentChapterData) return { nextChapterId: null, prevChapterId: null };
+    const mangaChapters = library
+      .filter(item => item.title === currentChapterData.title)
+      .sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
+    const currentIndex = mangaChapters.findIndex(item => item.id === chapterId);
+    return {
+      prevChapterId: currentIndex > 0 ? mangaChapters[currentIndex - 1].id : null,
+      nextChapterId: currentIndex < mangaChapters.length - 1 ? mangaChapters[currentIndex + 1].id : null,
+    };
+  }, [library, currentChapterData, chapterId]);
 
   const fetchedPages = useMemo(() => {
     if (!status) return [];
@@ -121,16 +133,32 @@ export function Reader() {
       {totalPages > 0 && (!isPolling || loadingMode === 'real-time') && !error && (
         <div className="fixed bottom-0 left-0 right-0 bg-panel border-t border-panel-light z-40">
           <ProgressBar percent={progressPercent} />
-          <div className="flex items-center justify-center p-3 text-sm font-medium text-foreground">
-            Página {currentPageIndex + 1} / {totalPages}
+          <div className="flex items-center justify-between p-3 px-4 text-sm font-medium text-foreground">
+            <button
+              disabled={!prevChapterId}
+              onClick={() => prevChapterId && navigate(`/reader/${prevChapterId}`)}
+              className="px-3 py-1 rounded-md text-foreground-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <span>
+              Página {currentPageIndex + 1} / {totalPages}
+            </span>
+            <button
+              disabled={!nextChapterId}
+              onClick={() => nextChapterId && navigate(`/reader/${nextChapterId}`)}
+              className="px-3 py-1 rounded-md text-foreground-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Próximo
+            </button>
           </div>
         </div>
       )}
 
       {/* Settings Drawer */}
-      <ReaderSettingsDrawer 
-        isOpen={isSettingsOpen} 
-        onClose={handleCloseSettings} 
+      <ReaderSettingsDrawer
+        isOpen={isSettingsOpen}
+        onClose={handleCloseSettings}
       />
     </div>
   );
