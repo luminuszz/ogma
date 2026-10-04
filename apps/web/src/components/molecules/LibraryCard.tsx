@@ -16,14 +16,16 @@ export const LibraryCard = ({ id, chapter, downloaded, total }: LibraryCardProps
   const deleteChapter = useDeleteChapter();
 
   const handleDelete = () => {
-    deleteChapter.mutate(id, {
-      onSuccess: () => {
-        toast.success('Capítulo deletado!');
-      },
-      onError: () => {
-        toast.error('Erro ao deletar capítulo.');
-      }
-    });
+    if (window.confirm("Tem certeza que deseja deletar este capítulo? Ele será removido permanentemente da nuvem.")) {
+      deleteChapter.mutate(id, {
+        onSuccess: () => {
+          toast.success('Capítulo deletado com sucesso!');
+        },
+        onError: () => {
+          toast.error('Erro ao deletar capítulo.');
+        }
+      });
+    }
   };
 
   const isTranslating = total === 0 || downloaded < total;
