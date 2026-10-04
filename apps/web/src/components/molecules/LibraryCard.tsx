@@ -4,13 +4,12 @@ import { useDeleteChapter } from '@/hooks/useManga';
 
 interface LibraryCardProps {
   id: string;
-  title: string;
   chapter: string;
   downloaded: number;
   total: number;
 }
 
-export const LibraryCard = ({ id, title, chapter, downloaded, total }: LibraryCardProps) => {
+export const LibraryCard = ({ id, chapter, downloaded, total }: LibraryCardProps) => {
   const deleteChapter = useDeleteChapter();
 
   const handleDelete = () => {
@@ -24,7 +23,6 @@ export const LibraryCard = ({ id, title, chapter, downloaded, total }: LibraryCa
       <div className="flex gap-6 items-center">
         <span className="text-foreground-muted font-bold text-lg">Ch. {chapter}</span>
         <div className="flex flex-col gap-1">
-          <span className="text-foreground font-semibold text-base truncate max-w-[200px] sm:max-w-xs">{title || "Unknown Title"}</span>
           <span className="text-foreground-muted text-sm font-normal">
             Baixado: {downloaded}/{total} páginas • PT-BR
           </span>

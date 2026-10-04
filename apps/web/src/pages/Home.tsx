@@ -15,12 +15,15 @@ export function Home() {
   const [error, setError] = useState<string | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [selectedChapters, setSelectedChapters] = useState<Set<string>>(new Set());
-  
+
   const navigate = useNavigate();
   const startDownload = useStartDownload();
   const startBulkDownload = useStartBulkDownload();
   const queryClient = useQueryClient();
   const { data: libraryData, isLoading: libraryLoading } = useLibrary();
+
+
+
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,14 +55,14 @@ export function Home() {
 
   return (
     <div className="flex-1 flex flex-col items-center p-4 max-w-4xl mx-auto w-full gap-8 mt-10">
-      
+
       {/* HEADER & ACTIONS */}
       <div className="w-full flex justify-between items-end mb-4">
         <div className="flex items-center gap-2">
           <BookMarked className="text-primary" size={32} />
           <h2 className="text-3xl font-bold text-foreground">Sua Biblioteca</h2>
         </div>
-        
+
         <button
           onClick={() => setIsSearchModalOpen(true)}
           className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full flex items-center justify-center transition-colors shadow-lg"
@@ -68,23 +71,46 @@ export function Home() {
           Baixar Novo
         </button>
       </div>
-      
+
       {/* LIBRARY SECTION */}
       <div className="w-full flex flex-col gap-4 mb-20">
         {libraryLoading ? (
           <Loader message="Carregando obras salvas..." />
         ) : libraryData && libraryData.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {libraryData.map((item: any) => (
-              <LibraryCard 
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                chapter={item.chapter}
-                downloaded={typeof item.downloaded === 'boolean' ? (item.downloaded ? item.total : 0) : item.downloaded}
-                total={item.total}
-              />
-            ))}
+          <div className="flex flex-col gap-10">
+            {Object.entries(
+              libraryData.reduce((acc: any, curr: any) => {
+                const groupTitle = curr.title || 'Obras Desconhecidas';
+                if (!acc[groupTitle]) acc[groupTitle] = [];
+                acc[groupTitle].push(curr);
+                return acc;
+              }, {})
+            ).map(([mangaTitle, chapters]: [string, any]) => {
+              const sortedChapters = [...chapters].sort((a, b) => {
+                const numA = parseFloat(a.chapter) || 0;
+                const numB = parseFloat(b.chapter) || 0;
+                return numA - numB;
+              });
+
+              return (
+                <div key={mangaTitle} className="flex flex-col gap-4">
+                  <h3 className="text-2xl font-bold text-foreground border-b border-panel-light pb-2 mb-2">
+                    {mangaTitle}
+                  </h3>
+                  <div className="flex flex-col gap-4">
+                    {sortedChapters.map((item: any) => (
+                      <LibraryCard
+                        key={item.id}
+                        id={item.id}
+                        chapter={item.chapter}
+                        downloaded={typeof item.downloaded === 'boolean' ? (item.downloaded ? item.total : 0) : item.downloaded}
+                        total={item.total}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="p-12 text-center text-foreground-muted bg-panel border border-panel-light rounded-2xl flex flex-col items-center justify-center">
@@ -96,8 +122,8 @@ export function Home() {
       </div>
 
       {/* SEARCH MODAL */}
-      <Modal 
-        isOpen={isSearchModalOpen} 
+      <Modal
+        isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         title="Baixar Novo Capítulo"
       >
@@ -153,7 +179,7 @@ export function Home() {
           <div className="mt-6 max-h-64 overflow-y-auto pr-2 space-y-2 border-t border-panel-light pt-4 custom-scrollbar relative">
             <div className="flex justify-between items-center mb-2">
               <h4 className="text-sm font-bold text-foreground">Capítulos Encontrados</h4>
-              <button 
+              <button
                 type="button"
                 onClick={() => {
                   if (selectedChapters.size === chapters.length) {
