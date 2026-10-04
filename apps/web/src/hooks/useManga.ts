@@ -6,6 +6,12 @@ export const useLibrary = () => {
   return useQuery<LibraryManga[], Error>({
     queryKey: ['library'],
     queryFn: api.getLibrary,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return false;
+      const isTranslating = data.some(item => item.total === 0 || item.downloaded < item.total);
+      return isTranslating ? 3000 : false;
+    }
   });
 };
 

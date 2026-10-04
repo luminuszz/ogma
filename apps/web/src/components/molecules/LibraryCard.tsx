@@ -18,14 +18,24 @@ export const LibraryCard = ({ id, chapter, downloaded, total }: LibraryCardProps
     }
   };
 
+  const isTranslating = total === 0 || downloaded < total;
+  const progressPercent = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+
   return (
-    <div className="w-full h-20 bg-base rounded-2xl px-6 flex justify-between items-center border border-panel-light hover:border-primary/50 transition-colors">
+    <div className={`w-full h-20 bg-base rounded-2xl px-6 flex justify-between items-center border ${isTranslating ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--color-primary),0.1)]' : 'border-panel-light hover:border-primary/50'} transition-colors`}>
       <div className="flex gap-6 items-center">
         <span className="text-foreground-muted font-bold text-lg">Ch. {chapter}</span>
         <div className="flex flex-col gap-1">
-          <span className="text-foreground-muted text-sm font-normal">
-            Baixado: {downloaded}/{total} páginas • PT-BR
-          </span>
+          {isTranslating ? (
+            <div className="flex items-center gap-2 text-primary text-sm font-medium">
+              <Loader2 size={14} className="animate-spin" />
+              <span>Traduzindo... {total > 0 ? `${progressPercent}%` : 'Iniciando'}</span>
+            </div>
+          ) : (
+            <span className="text-foreground-muted text-sm font-normal">
+              Traduzido: {downloaded}/{total} páginas • PT-BR
+            </span>
+          )}
         </div>
       </div>
       
