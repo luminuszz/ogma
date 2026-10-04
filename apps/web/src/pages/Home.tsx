@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2, BookMarked, Plus } from 'lucide-react';
-import { useStartDownload, useLibrary } from '@/hooks/useManga';
+import { Search, Loader2, BookMarked, Plus, CheckSquare, Square } from 'lucide-react';
+import { useStartDownload, useLibrary, useStartBulkDownload } from '@/hooks/useManga';
+import { useQueryClient } from '@tanstack/react-query';
 import { LibraryCard } from '@/components/molecules/LibraryCard';
 import { Loader } from '@/components/atoms/Loader';
 import { Modal } from '@/components/atoms/Modal';
@@ -13,9 +14,12 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
+  const [selectedChapters, setSelectedChapters] = useState<Set<string>>(new Set());
   
   const navigate = useNavigate();
   const startDownload = useStartDownload();
+  const startBulkDownload = useStartBulkDownload();
+  const queryClient = useQueryClient();
   const { data: libraryData, isLoading: libraryLoading } = useLibrary();
 
   const handleStart = async (e: React.FormEvent) => {
@@ -146,27 +150,83 @@ export function Home() {
         </form>
 
         {chapters.length > 0 && (
-          <div className="mt-6 max-h-64 overflow-y-auto pr-2 space-y-2 border-t border-panel-light pt-4 custom-scrollbar">
-            <h4 className="text-sm font-bold text-foreground mb-2">Capítulos Encontrados</h4>
-            {chapters.map((chapter) => (
-              <button
-                key={chapter.id}
-                onClick={async () => {
-                  setIsSearchModalOpen(false);
-                  await startDownload.mutateAsync({ chapterId: chapter.id, sourceLang });
-                  navigate(`/reader/${encodeURIComponent(chapter.id)}`);
+          <div className="mt-6 max-h-64 overflow-y-auto pr-2 space-y-2 border-t border-panel-light pt-4 custom-scrollbar relative">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-sm font-bold text-foreground">Capítulos Encontrados</h4>
+              <button 
+                type="button"
+                onClick={() => {
+                  if (selectedChapters.size === chapters.length) {
+                    setSelectedChapters(new Set());
+                  } else {
+                    setSelectedChapters(new Set(chapters.map(c => c.id)));
+                  }
                 }}
-                className="w-full text-left p-3 rounded-lg bg-base border border-panel-light hover:border-primary transition-colors flex justify-between items-center group"
+                className="text-xs text-primary hover:underline"
               >
-                <div className="truncate pr-4">
-                  <span className="font-bold text-foreground mr-2">Ch. {chapter.chapter}</span>
-                  <span className="text-sm text-foreground-muted truncate">{chapter.title || 'Sem título'}</span>
+                {selectedChapters.size === chapters.length ? 'Desmarcar todos' : 'Marcar todos'}
+              </button>
+            </div>
+            {chapters.map((chapter) => (
+              <label
+                key={chapter.id}
+                className={`w-full text-left p-3 rounded-lg bg-base border ${selectedChapters.has(chapter.id) ? 'border-primary bg-primary/10' : 'border-panel-light hover:border-primary/50'} transition-colors flex justify-between items-center group cursor-pointer`}
+              >
+                <div className="flex items-center truncate pr-4">
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedChapters.has(chapter.id)}
+                    onChange={() => {
+                      const newSelected = new Set(selectedChapters);
+                      if (newSelected.has(chapter.id)) {
+                        newSelected.delete(chapter.id);
+                      } else {
+                        newSelected.add(chapter.id);
+                      }
+                      setSelectedChapters(newSelected);
+                    }}
+                  />
+                  <div className="mr-3 text-primary">
+                    {selectedChapters.has(chapter.id) ? <CheckSquare size={18} /> : <Square size={18} className="text-foreground-muted" />}
+                  </div>
+                  <div className="truncate">
+                    <span className="font-bold text-foreground mr-2">Ch. {chapter.chapter}</span>
+                    <span className="text-sm text-foreground-muted truncate">{chapter.title || 'Sem título'}</span>
+                  </div>
                 </div>
                 <span className="text-xs uppercase bg-panel px-2 py-1 rounded text-foreground-muted whitespace-nowrap group-hover:bg-primary/20 group-hover:text-primary transition-colors">
                   {chapter.language || 'UNK'}
                 </span>
-              </button>
+              </label>
             ))}
+            {selectedChapters.size > 0 && (
+              <div className="sticky bottom-0 pt-2 bg-panel/80 backdrop-blur-sm">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      await startBulkDownload.mutateAsync({
+                        chapterIds: Array.from(selectedChapters),
+                        sourceLang
+                      });
+                      setSelectedChapters(new Set());
+                      setIsSearchModalOpen(false);
+                      queryClient.invalidateQueries({ queryKey: ['library'] });
+                    } catch (err: any) {
+                      setError(err.message || 'Failed to start bulk download');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors shadow-lg"
+                >
+                  Baixar {selectedChapters.size} Capítulos Selecionados
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

@@ -15,6 +15,12 @@ export const useStartDownload = () => {
   });
 };
 
+export const useStartBulkDownload = () => {
+  return useMutation({
+    mutationFn: api.startBulkDownload,
+  });
+};
+
 export const useDeleteChapter = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -38,6 +38,20 @@ export const api = {
     }
   },
 
+  startBulkDownload: async (params: { chapterIds: string[]; sourceLang?: string }): Promise<void> => {
+    const res = await fetch('/api/manga/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chapterIds: params.chapterIds,
+        sourceLang: params.sourceLang || 'auto',
+      }),
+    });
+    if (!res.ok) {
+      throw new Error('Failed to start bulk download');
+    }
+  },
+
   getStatus: async (chapterId: string): Promise<ChapterStatus> => {
     const res = await fetch(`/api/manga/${chapterId}/status`);
     if (!res.ok) {
