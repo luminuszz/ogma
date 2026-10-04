@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, BookMarked, Plus, CheckSquare, Square } from 'lucide-react';
@@ -99,7 +100,7 @@ export function Home() {
     setSelectedChapters(newSelected);
   };
 
-import toast from 'react-hot-toast';
+
 
   const handleBulkDownload = async () => {
     setIsLoading(true);

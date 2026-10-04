@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { Link } from 'react-router-dom';
 import { Trash2, Loader2 } from 'lucide-react';
 import { useDeleteChapter } from '@/hooks/useManga';
@@ -9,7 +10,7 @@ interface LibraryCardProps {
   total: number;
 }
 
-import toast from 'react-hot-toast';
+
 
 export const LibraryCard = ({ id, chapter, downloaded, total }: LibraryCardProps) => {
   const deleteChapter = useDeleteChapter();
