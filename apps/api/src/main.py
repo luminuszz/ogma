@@ -24,8 +24,13 @@ async def get_chapters(manga_id: str):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/manga/{chapter_id}")
-async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, source_lang: str = "auto"):
+from pydantic import BaseModel
+
+class BulkDownloadRequest(BaseModel):
+    chapterIds: list[str]
+    sourceLang: str = "auto"
+
+async def _process_single_chapter(chapter_id: str, background_tasks: BackgroundTasks, source_lang: str = "auto"):
     try:
         pages = await fetch_chapter_pages(chapter_id)
         meta = await fetch_chapter_metadata(chapter_id)
@@ -132,6 +137,18 @@ async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, so
         }
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/manga/bulk")
+async def process_bulk_chapters(request: BulkDownloadRequest, background_tasks: BackgroundTasks):
+    results = []
+    for chapter_id in request.chapterIds:
+        result = await _process_single_chapter(chapter_id, background_tasks, request.sourceLang)
+        results.append(result)
+    return {"status": "queued", "results": results}
+
+@app.post("/api/manga/{chapter_id}")
+async def process_chapter(chapter_id: str, background_tasks: BackgroundTasks, source_lang: str = "auto"):
+    return await _process_single_chapter(chapter_id, background_tasks, source_lang)
 
 @app.get("/api/manga/{chapter_id}/status")
 async def chapter_status(chapter_id: str):
