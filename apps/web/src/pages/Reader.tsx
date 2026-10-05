@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Settings } from 'lucide-react';
-import { useChapterStatus, useRetryChapter, useChapterNavigation } from '../hooks/useManga';
+import { useChapterStatus, useRetryChapter, useChapterNavigation, useChapterSSEListener } from '../hooks/useManga';
 import { ReaderComponent } from '../components/ReaderComponent';
 import { Loader } from '../components/Loader';
 import { ProgressBar } from '../components/ProgressBar';
@@ -10,11 +10,9 @@ import { ErrorCard } from '../components/ErrorCard';
 import { LoadingStatus } from '../components/LoadingStatus';
 import { ReaderSettingsDrawer } from '../components/ReaderSettingsDrawer';
 import { useReadSettings } from '@/hooks/useReadSettings';
-import { useQueryClient } from '@tanstack/react-query';
 
 export function Reader() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { chapterId } = useParams<{ chapterId: string }>();
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -70,35 +68,7 @@ export function Reader() {
     }
   };
 
-  useEffect(() => {
-    if (!chapterId || !status || status.status === 'done' || status.status === 'error') return;
-
-    const evtSource = new EventSource(`/api/manga/${chapterId}/stream`);
-
-    evtSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        queryClient.setQueryData(['chapterStatus', chapterId], (old: any) => {
-          if (!old) return old;
-          const newReadyPages = [...(old.readyPages || [])];
-          if (!newReadyPages.some((p: any) => p.url === data.url)) {
-            newReadyPages.push({ url: data.url, pageIndex: data.pageIndex });
-          }
-          return {
-            ...old,
-            readyPages: newReadyPages,
-            completed: Math.max(old.completed || 0, data.pageIndex + 1),
-          };
-        });
-      } catch (err) {
-        console.error('SSE Error:', err);
-      }
-    };
-
-    return () => {
-      evtSource.close();
-    };
-  }, [chapterId, status, queryClient]);
+  useChapterSSEListener(chapterId, status);
 
   useEffect(() => {
     setCurrentPageIndex(0);
