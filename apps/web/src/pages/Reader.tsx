@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Settings } from 'lucide-react';
-import { useChapterStatus, useLibrary, useRetryChapter } from '../hooks/useManga';
+import { useChapterStatus, useRetryChapter, useChapterNavigation } from '../hooks/useManga';
 import { ReaderComponent } from '../components/ReaderComponent';
 import { Loader } from '../components/Loader';
 import { ProgressBar } from '../components/ProgressBar';
@@ -10,15 +10,16 @@ import { ErrorCard } from '../components/ErrorCard';
 import { LoadingStatus } from '../components/LoadingStatus';
 import { ReaderSettingsDrawer } from '../components/ReaderSettingsDrawer';
 import { useReadSettings } from '@/hooks/useReadSettings';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function Reader() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { chapterId } = useParams<{ chapterId: string }>();
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const { data: library } = useLibrary();
-  const { data: status, error: queryError } = useChapterStatus(chapterId);
+  const { data: status, error: queryError, isFetching } = useChapterStatus(chapterId);
   const { readingDirection, imageFit, loadingMode } = useReadSettings();
 
   const retryMutation = useRetryChapter();
@@ -37,28 +38,11 @@ export function Reader() {
     }
   };
 
-  const isPolling = status ? status.status !== 'done' && status.status !== 'error' : true;
+  const isPolling = isFetching;
   const error = queryError?.message || (status?.status === 'error' ? status.error : null);
 
-  const currentChapterData = useMemo(() => {
-    return library?.find(item => item.id === chapterId);
-  }, [library, chapterId]);
-
-  const currentChapterTitle = useMemo(() => {
-    return currentChapterData ? `${currentChapterData.title} - Capitulo: ${currentChapterData.chapter.padStart(2, '0')}` : chapterId;
-  }, [currentChapterData, chapterId]);
-
-  const { nextChapterId, prevChapterId } = useMemo(() => {
-    if (!library || !currentChapterData) return { nextChapterId: null, prevChapterId: null };
-    const mangaChapters = library
-      .filter(item => item.title === currentChapterData.title)
-      .sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
-    const currentIndex = mangaChapters.findIndex(item => item.id === chapterId);
-    return {
-      prevChapterId: currentIndex > 0 ? mangaChapters[currentIndex - 1].id : null,
-      nextChapterId: currentIndex < mangaChapters.length - 1 ? mangaChapters[currentIndex + 1].id : null,
-    };
-  }, [library, currentChapterData, chapterId]);
+  const { currentChapterData, prevChapterId, nextChapterId } = useChapterNavigation(chapterId);
+  const currentChapterTitle = currentChapterData ? `${currentChapterData.title} - Capitulo: ${currentChapterData.chapter.padStart(2, '0')}` : chapterId;
 
   const fetchedPages = useMemo(() => {
     if (!status) return [];
@@ -85,11 +69,41 @@ export function Reader() {
       navigate(`/reader/${prevChapterId}`);
     }
   };
+
+  useEffect(() => {
+    if (!chapterId || !status || status.status === 'done' || status.status === 'error') return;
+
+    const evtSource = new EventSource(`/api/manga/${chapterId}/stream`);
+
+    evtSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        queryClient.setQueryData(['chapterStatus', chapterId], (old: any) => {
+          if (!old) return old;
+          const newReadyPages = [...(old.readyPages || [])];
+          if (!newReadyPages.some((p: any) => p.url === data.url)) {
+            newReadyPages.push({ url: data.url, pageIndex: data.pageIndex });
+          }
+          return {
+            ...old,
+            readyPages: newReadyPages,
+            completed: Math.max(old.completed || 0, data.pageIndex + 1),
+          };
+        });
+      } catch (err) {
+        console.error('SSE Error:', err);
+      }
+    };
+
+    return () => {
+      evtSource.close();
+    };
+  }, [chapterId, status, queryClient]);
+
   useEffect(() => {
     setCurrentPageIndex(0);
     window.scrollTo(0, 0);
   }, [chapterId]);
-
 
   useEffect(() => {
     if (currentChapterTitle) {

@@ -45,13 +45,6 @@ export const useChapterStatus = (chapterId: string | undefined) => {
       return api.getStatus(chapterId);
     },
     enabled: !!chapterId,
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      if (data?.status === 'done' || data?.status === 'error') {
-        return false;
-      }
-      return 2000;
-    },
   });
 };
 
