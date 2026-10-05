@@ -5,8 +5,8 @@ from pathlib import Path
 import redis.asyncio as redis
 from arq import create_pool
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from sse_starlette.sse import EventSourceResponse
 from sqlalchemy import delete, func, select
+from sse_starlette.sse import EventSourceResponse
 
 from src.db.database import AsyncSessionLocal
 from src.db.models import Chapter, Manga, Page, TranslationStatus
@@ -203,6 +203,7 @@ async def process_chapter(
 async def retry_chapter(chapter_id: str, background_tasks: BackgroundTasks):
     try:
         from sqlalchemy import select
+
         from src.db.database import AsyncSessionLocal
         from src.db.models import Chapter, Page, TranslationStatus
         from src.mangadex import fetch_chapter_metadata, fetch_chapter_pages
@@ -315,20 +316,20 @@ async def chapter_status(chapter_id: str):
 async def get_library():
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(Chapter, Manga.title).join(
-                Manga, Chapter.manga_id == Manga.id
+            stmt = (
+                select(Chapter, Manga.title, func.count(Page.id).label("downloaded"))
+                .join(Manga, Chapter.manga_id == Manga.id)
+                .outerjoin(
+                    Page,
+                    (Page.chapter_id == Chapter.id) & (Page.status == TranslationStatus.DONE)
+                )
+                .group_by(Chapter.id, Manga.title)
             )
             result = await session.execute(stmt)
             rows = result.all()
 
             library = []
-            for chapter, manga_title in rows:
-                pages_stmt = select(func.count(Page.id)).where(
-                    Page.chapter_id == chapter.id, Page.status == TranslationStatus.DONE
-                )
-                pages_result = await session.execute(pages_stmt)
-                downloaded = pages_result.scalar() or 0
-
+            for chapter, manga_title, downloaded in rows:
                 library.append(
                     {
                         "id": chapter.id,
