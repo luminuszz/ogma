@@ -69,6 +69,16 @@ export const api = {
     }
   },
 
+  retryChapter: async (chapterId: string): Promise<void> => {
+    const res = await fetch(`/api/manga/${chapterId}/retry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      throw new Error('Failed to retry chapter');
+    }
+  },
+
   clearCache: async (): Promise<void> => {
     const res = await fetch('/api/admin/clear-cache', {
       method: 'POST',

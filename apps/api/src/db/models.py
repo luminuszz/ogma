@@ -32,5 +32,4 @@ class Page(Base):
     chapter_id = Column(String, ForeignKey("chapters.id"))
     page_index = Column(Integer)
     image_url = Column(String, nullable=True) # Cloudflare R2 URL
-    ocr_data = Column(JSON, nullable=True) # Bounding boxes & translations
     status = Column(Enum(TranslationStatus), default=TranslationStatus.PENDING)  # type: ignore

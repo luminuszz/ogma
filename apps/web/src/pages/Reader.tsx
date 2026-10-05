@@ -1,13 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { ArrowLeft, Settings } from 'lucide-react';
-import { useChapterStatus, useLibrary } from '../hooks/useManga';
-import { ReaderComponent } from '../components/organisms/ReaderComponent';
-import { Loader } from '../components/atoms/Loader';
-import { ProgressBar } from '../components/atoms/ProgressBar';
-import { ErrorCard } from '../components/molecules/ErrorCard';
-import { LoadingStatus } from '../components/molecules/LoadingStatus';
-import { ReaderSettingsDrawer } from '../components/organisms/ReaderSettingsDrawer';
+import { useChapterStatus, useLibrary, useRetryChapter } from '../hooks/useManga';
+import { ReaderComponent } from '../components/ReaderComponent';
+import { Loader } from '../components/Loader';
+import { ProgressBar } from '../components/ProgressBar';
+import { ErrorCard } from '../components/ErrorCard';
+import { LoadingStatus } from '../components/LoadingStatus';
+import { ReaderSettingsDrawer } from '../components/ReaderSettingsDrawer';
 import { useReadSettings } from '@/hooks/useReadSettings';
 
 export function Reader() {
@@ -19,6 +20,8 @@ export function Reader() {
   const { data: library } = useLibrary();
   const { data: status, error: queryError } = useChapterStatus(chapterId);
   const { readingDirection, imageFit, loadingMode } = useReadSettings();
+
+  const retryMutation = useRetryChapter();
 
   const handleNavigateHome = () => navigate('/');
   const handleOpenSettings = () => setIsSettingsOpen(true);
@@ -98,7 +101,24 @@ export function Reader() {
 
       <div className="flex-1 flex flex-col items-center">
         {error ? (
-          <ErrorCard error={error} onRetry={handleNavigateHome} />
+          <div className="flex flex-col items-center gap-4 mt-8">
+            <ErrorCard error={error} onRetry={handleNavigateHome} />
+            <button
+              onClick={() => {
+                if (chapterId) {
+                  retryMutation.mutate(chapterId, {
+                    onSuccess: () => {
+                      toast.success('Páginas sendo recarregadas!');
+                    }
+                  });
+                }
+              }}
+              disabled={retryMutation.isPending}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors"
+            >
+              {retryMutation.isPending ? 'Recarregando...' : 'Recarregar páginas com erro'}
+            </button>
+          </div>
         ) : isPolling && pages.length === 0 ? (
           status && status.total && status.total > 0 ? (
             <LoadingStatus completed={status.completed ?? 0} total={status.total} />

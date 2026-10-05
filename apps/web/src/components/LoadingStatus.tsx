@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { ProgressBar } from '@/components/atoms/ProgressBar';
+import { ProgressBar } from '@/components/ProgressBar';
 
 interface LoadingStatusProps {
   completed: number;

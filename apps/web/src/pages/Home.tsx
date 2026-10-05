@@ -5,9 +5,9 @@ import { Search, Loader2, BookMarked, Plus, CheckSquare, Square } from 'lucide-r
 import { useStartDownload, useLibrary, useStartBulkDownload } from '@/hooks/useManga';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { MangaAccordion } from '@/components/molecules/MangaAccordion';
-import { Loader } from '@/components/atoms/Loader';
-import { Modal } from '@/components/atoms/Modal';
+import { MangaAccordion } from '@/components/MangaAccordion';
+import { Loader } from '@/components/Loader';
+import { Modal } from '@/components/Modal';
 
 export function Home() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);

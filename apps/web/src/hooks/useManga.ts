@@ -55,6 +55,16 @@ export const useChapterStatus = (chapterId: string | undefined) => {
   });
 };
 
+export const useRetryChapter = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: api.retryChapter,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chapterStatus'] });
+    },
+  });
+};
+
 export const useClearCache = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -7,7 +7,7 @@ interface ReaderSettingsDrawerProps {
 }
 
 export const ReaderSettingsDrawer = ({ isOpen, onClose }: ReaderSettingsDrawerProps) => {
-  const { readingDirection, imageFit, loadingMode, update } = useReadSettings();
+  const { readingDirection, setReadingDirection, imageFit, setImageFit, loadingMode, setLoadingMode } = useReadSettings();
 
   if (!isOpen) return null;
 
@@ -33,13 +33,13 @@ export const ReaderSettingsDrawer = ({ isOpen, onClose }: ReaderSettingsDrawerPr
             <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Reading Direction</h4>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => update("direction", "webtoon")}
+                onClick={() => setReadingDirection("webtoon")}
                 className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${readingDirection === 'webtoon' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
               >
                 Webtoon
               </button>
               <button
-                onClick={() => update("direction", 'paged')}
+                onClick={() => setReadingDirection('paged')}
                 className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${readingDirection === 'paged' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
               >
                 Paged (LTR)
@@ -51,13 +51,13 @@ export const ReaderSettingsDrawer = ({ isOpen, onClose }: ReaderSettingsDrawerPr
             <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Image Fit</h4>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => update("fit",'width')}
+                onClick={() => setImageFit('width')}
                 className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${imageFit === 'width' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
               >
                 Width
               </button>
               <button
-                onClick={() => update("fit", 'height')}
+                onClick={() => setImageFit('height')}
                 className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${imageFit === 'height' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
               >
                 Height
@@ -69,13 +69,13 @@ export const ReaderSettingsDrawer = ({ isOpen, onClose }: ReaderSettingsDrawerPr
             <h4 className="text-sm font-medium text-foreground-muted uppercase tracking-wider">Loading Mode</h4>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => update("loading",'real-time')}
+                onClick={() => setLoadingMode('real-time')}
                 className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${loadingMode === 'real-time' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
               >
                 Real-time
               </button>
               <button
-                onClick={() => update("loading",'wait')}
+                onClick={() => setLoadingMode('wait')}
                 className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${loadingMode === 'wait' ? 'bg-primary/20 border border-primary text-primary' : 'bg-base border border-panel-light text-foreground-muted hover:text-foreground'}`}
               >
                 Wait all
