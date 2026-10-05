@@ -2,6 +2,7 @@ import json
 import os
 
 import httpx
+import redis.asyncio as redis
 from arq.connections import RedisSettings
 from sqlalchemy import select
 
@@ -111,6 +112,10 @@ async def process_page(
                 page_obj.status = TranslationStatus.DONE  # type: ignore
                 page_obj.image_url = image_url  # type: ignore
                 await session.commit()
+
+        r = await redis.from_url(REDIS_URL)
+        await r.publish(f"chapter:{chapter_id}", json.dumps({"page_index": page_index, "url": image_url}))
+        await r.aclose()
 
         return {"status": "ok", "url": image_url}
 

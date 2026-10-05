@@ -2,8 +2,10 @@ import asyncio
 import shutil
 from pathlib import Path
 
+import redis.asyncio as redis
 from arq import create_pool
 from fastapi import BackgroundTasks, FastAPI, HTTPException
+from sse_starlette.sse import EventSourceResponse
 from sqlalchemy import delete, func, select
 
 from src.db.database import AsyncSessionLocal
@@ -20,6 +22,31 @@ redis_pool = None
 async def startup():
     global redis_pool
     redis_pool = await create_pool(await get_redis_settings())
+
+
+import os
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+
+@app.get("/api/manga/{chapter_id}/stream")
+async def stream_chapter(chapter_id: str):
+    async def event_generator():
+        r = await redis.from_url(REDIS_URL)
+        pubsub = r.pubsub()
+        await pubsub.subscribe(f"chapter:{chapter_id}")
+        try:
+            while True:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message is not None:
+                    yield {"data": message["data"].decode("utf-8")}
+                else:
+                    yield {"event": "ping", "data": "ping"}
+        finally:
+            await pubsub.unsubscribe(f"chapter:{chapter_id}")
+            await pubsub.close()
+            await r.aclose()
+            
+    return EventSourceResponse(event_generator())
 
 
 @app.get("/api/manga/{manga_id}/chapters")
