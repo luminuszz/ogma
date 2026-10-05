@@ -27,6 +27,16 @@ export function Reader() {
   const handleOpenSettings = () => setIsSettingsOpen(true);
   const handleCloseSettings = () => setIsSettingsOpen(false);
 
+  const handleRetry = () => {
+    if (chapterId) {
+      retryMutation.mutate(chapterId, {
+        onSuccess: () => {
+          toast.success('Páginas sendo recarregadas!');
+        }
+      });
+    }
+  };
+
   const isPolling = status ? status.status !== 'done' && status.status !== 'error' : true;
   const error = queryError?.message || (status?.status === 'error' ? status.error : null);
 
@@ -54,7 +64,7 @@ export function Reader() {
     if (!status) return [];
     if (status.readyPages) {
       return status.readyPages
-        .sort((a, b) => a.pageIndex - b.pageIndex)
+        .toSorted((a, b) => a.pageIndex - b.pageIndex)
         .map(page => page.url);
     }
     return [];
@@ -63,6 +73,22 @@ export function Reader() {
   const pages = loadingMode === 'wait' && isPolling ? [] : fetchedPages;
   const totalPages = status?.total || pages.length;
   const progressPercent = totalPages > 0 ? ((currentPageIndex + 1) / totalPages) * 100 : 0;
+
+  const handleNextChapter = () => {
+    if (nextChapterId) {
+      navigate(`/reader/${nextChapterId}`);
+    }
+  };
+
+  const handlePrevChapter = () => {
+    if (prevChapterId) {
+      navigate(`/reader/${prevChapterId}`);
+    }
+  };
+  useEffect(() => {
+    setCurrentPageIndex(0);
+    window.scrollTo(0, 0);
+  }, [chapterId]);
 
 
   useEffect(() => {
@@ -104,15 +130,7 @@ export function Reader() {
           <div className="flex flex-col items-center gap-4 mt-8">
             <ErrorCard error={error} onRetry={handleNavigateHome} />
             <button
-              onClick={() => {
-                if (chapterId) {
-                  retryMutation.mutate(chapterId, {
-                    onSuccess: () => {
-                      toast.success('Páginas sendo recarregadas!');
-                    }
-                  });
-                }
-              }}
+              onClick={handleRetry}
               disabled={retryMutation.isPending}
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium transition-colors"
             >
@@ -156,7 +174,7 @@ export function Reader() {
           <div className="flex items-center justify-between p-3 px-4 text-sm font-medium text-foreground">
             <button
               disabled={!prevChapterId}
-              onClick={() => prevChapterId && navigate(`/reader/${prevChapterId}`)}
+              onClick={handlePrevChapter}
               className="px-3 py-1 rounded-md text-foreground-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Anterior
@@ -166,7 +184,7 @@ export function Reader() {
             </span>
             <button
               disabled={!nextChapterId}
-              onClick={() => nextChapterId && navigate(`/reader/${nextChapterId}`)}
+              onClick={handleNextChapter}
               className="px-3 py-1 rounded-md text-foreground-muted hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Próximo
