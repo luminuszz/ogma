@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api';
 import type { ChapterStatus, LibraryManga } from '@/api';
 
-export const useLibrary = () => {
+export const useLibrary = (disablePolling = false) => {
   return useQuery<LibraryManga[], Error>({
     queryKey: ['library'],
     queryFn: api.getLibrary,
-    refetchInterval: (query) => {
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    refetchInterval: disablePolling ? false : (query) => {
       const data = query.state.data;
       if (!data) return false;
       const isTranslating = data.some(item => item.total === 0 || item.downloaded < item.total);
@@ -70,7 +71,7 @@ export const useClearCache = () => {
 };
 
 export const useChapterNavigation = (chapterId: string | undefined) => {
-  const { data: library } = useLibrary();
+  const { data: library } = useLibrary(true);
 
   return useMemo(() => {
     const currentChapterData = library?.find((item) => item.id === chapterId);
