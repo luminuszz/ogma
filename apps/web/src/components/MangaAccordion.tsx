@@ -41,6 +41,7 @@ export const MangaAccordion = ({ mangaTitle, chapters }: MangaAccordionProps) =>
                 chapter={item.chapter}
                 downloaded={typeof item.downloaded === 'boolean' ? (item.downloaded ? item.total : 0) : item.downloaded}
                 total={item.total}
+                status={item.status}
               />
             ))}
           </div>

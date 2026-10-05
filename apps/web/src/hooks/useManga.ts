@@ -56,6 +56,7 @@ export const useRetryChapter = () => {
     mutationFn: api.retryChapter,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chapterStatus'] });
+      queryClient.invalidateQueries({ queryKey: ['library'] });
     },
   });
 };

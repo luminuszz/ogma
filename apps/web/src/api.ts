@@ -14,6 +14,7 @@ export type LibraryManga = {
   chapter: string;
   downloaded: number;
   total: number;
+  status: string;
 };
 
 export const api = {

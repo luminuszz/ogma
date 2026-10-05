@@ -316,14 +316,16 @@ async def chapter_status(chapter_id: str):
 async def get_library():
     try:
         async with AsyncSessionLocal() as session:
+            downloaded_sq = (
+                select(Page.chapter_id, func.count(Page.id).label("downloaded"))
+                .where(Page.status == TranslationStatus.DONE)
+                .group_by(Page.chapter_id)
+            ).subquery()
+
             stmt = (
-                select(Chapter, Manga.title, func.count(Page.id).label("downloaded"))
+                select(Chapter, Manga.title, func.coalesce(downloaded_sq.c.downloaded, 0).label("downloaded"))
                 .join(Manga, Chapter.manga_id == Manga.id)
-                .outerjoin(
-                    Page,
-                    (Page.chapter_id == Chapter.id) & (Page.status == TranslationStatus.DONE)
-                )
-                .group_by(Chapter.id, Manga.title)
+                .outerjoin(downloaded_sq, Chapter.id == downloaded_sq.c.chapter_id)
             )
             result = await session.execute(stmt)
             rows = result.all()
@@ -337,6 +339,7 @@ async def get_library():
                         "chapter": chapter.chapter_number,
                         "downloaded": downloaded,
                         "total": chapter.total_pages,
+                        "status": chapter.status.value if hasattr(chapter.status, 'value') else chapter.status
                     }
                 )
 

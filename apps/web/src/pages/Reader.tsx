@@ -18,8 +18,9 @@ export function Reader() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: status, error: queryError, isFetching } = useChapterStatus(chapterId);
-  const { readingDirection, imageFit, loadingMode } = useReadSettings();
+  useChapterSSEListener(chapterId, status);
 
+  const { readingDirection, imageFit, loadingMode } = useReadSettings();
   const retryMutation = useRetryChapter();
 
   const handleNavigateHome = () => navigate('/');
@@ -40,16 +41,17 @@ export function Reader() {
   const error = queryError?.message || (status?.status === 'error' ? status.error : null);
 
   const { currentChapterData, prevChapterId, nextChapterId } = useChapterNavigation(chapterId);
-  const currentChapterTitle = currentChapterData ? `${currentChapterData.title} - Capitulo: ${currentChapterData.chapter.padStart(2, '0')}` : chapterId;
+
+  const currentChapterTitle = currentChapterData ?
+    `${currentChapterData.title} - Capitulo: ${currentChapterData.chapter.padStart(2, '0')}`
+    : chapterId;
 
   const fetchedPages = useMemo(() => {
-    if (!status) return [];
-    if (status.readyPages) {
-      return status.readyPages
-        .toSorted((a, b) => a.pageIndex - b.pageIndex)
-        .map(page => page.url);
-    }
-    return [];
+    if(!status || !status?.readyPages) return []
+
+    return status.readyPages
+      .toSorted((a, b) => a.pageIndex - b.pageIndex)
+      .map(page => page.url);
   }, [status]);
 
   const pages = loadingMode === 'wait' && isPolling ? [] : fetchedPages;
@@ -68,7 +70,6 @@ export function Reader() {
     }
   };
 
-  useChapterSSEListener(chapterId, status);
 
   useEffect(() => {
     setCurrentPageIndex(0);
@@ -85,6 +86,9 @@ export function Reader() {
     }
 
   } , [currentChapterTitle])
+
+
+
 
 
 
