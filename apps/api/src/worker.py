@@ -7,7 +7,8 @@ from arq.connections import RedisSettings
 from sqlalchemy import select
 
 from src.db.database import AsyncSessionLocal
-from src.db.models import Page, TranslationStatus
+from src.db.models import Chapter, Page, TranslationStatus
+from src.scrapers.registry import get_registry
 from src.services.storage import upload_image_to_r2
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -134,7 +135,105 @@ async def process_page(
         raise
 
 
+async def scrape_and_download_chapter(
+    ctx,
+    provider_name: str,
+    chapter_id: str,
+    chapter_url: str,
+    force_translate: bool = False,
+):
+    registry = get_registry()
+    provider = next((p for p in registry._providers if p.name == provider_name), None)
+    if not provider:
+        raise ValueError(f"Provider {provider_name} not found.")
+
+    # 1. Extract pages using the provider
+    pages = await provider.extract_chapter_pages(chapter_url)
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+        chapter_obj = result.scalar_one_or_none()
+        if chapter_obj:
+            chapter_obj.total_pages = len(pages)
+            chapter_obj.status = TranslationStatus.PROCESSING
+
+        # Prepare Page records
+        for page in pages:
+            existing_page = await session.execute(
+                select(Page).where(
+                    Page.chapter_id == chapter_id, Page.page_index == page.page_index
+                )
+            )
+            page_obj = existing_page.scalar_one_or_none()
+            if not page_obj:
+                session.add(
+                    Page(
+                        chapter_id=chapter_id,
+                        page_index=page.page_index,
+                        status=TranslationStatus.PENDING,
+                    )
+                )
+
+        await session.commit()
+
+    # 2. Download and upload each image with browser context
+    async with httpx.AsyncClient(
+        headers={"referer": "https://lycantoons.com/"}, timeout=60.0
+    ) as client:
+        for page in pages:
+            try:
+                resp = await client.get(page.image_url)
+                resp.raise_for_status()
+                image_bytes = resp.content
+
+                dest_path = f"{chapter_id}/{page.page_index}.png"
+                image_url = await upload_image_to_r2(image_bytes, dest_path)
+
+                async with AsyncSessionLocal() as session:
+                    res = await session.execute(
+                        select(Page).where(
+                            Page.chapter_id == chapter_id,
+                            Page.page_index == page.page_index,
+                        )
+                    )
+                    page_record = res.scalar_one_or_none()
+                    if page_record:
+                        page_record.status = TranslationStatus.DONE
+                        page_record.image_url = image_url
+                        await session.commit()
+
+                # Publish SSE progress update
+                r = await redis.from_url(REDIS_URL)
+                await r.publish(
+                    f"chapter:{chapter_id}",
+                    json.dumps({"page_index": page.page_index, "url": image_url}),
+                )
+                await r.aclose()
+
+            except Exception as e:  # noqa: BLE001
+                print(f"Error processing page {page.page_index} for {chapter_id}: {e}")
+                async with AsyncSessionLocal() as session:
+                    res = await session.execute(
+                        select(Page).where(
+                            Page.chapter_id == chapter_id,
+                            Page.page_index == page.page_index,
+                        )
+                    )
+                    p_rec = res.scalar_one_or_none()
+                    if p_rec:
+                        p_rec.status = TranslationStatus.ERROR
+                        await session.commit()
+
+    # 3. Mark Chapter as DONE
+    async with AsyncSessionLocal() as session:
+        ch_res = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+        chapter_obj = ch_res.scalar_one_or_none()
+        if chapter_obj:
+            chapter_obj.status = TranslationStatus.DONE
+            await session.commit()
+
+
 class WorkerSettings:
-    functions: list = [process_page]  # noqa: RUF012
+    functions: list = [process_page, scrape_and_download_chapter]  # noqa: RUF012
     max_jobs = 3
     redis_settings = RedisSettings.from_dsn(REDIS_URL)
