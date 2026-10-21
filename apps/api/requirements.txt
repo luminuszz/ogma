@@ -10,3 +10,4 @@ asyncpg>=0.29.0
 alembic>=1.13.1
 aioboto3>=12.4.0
 sse-starlette==2.1.0
+playwright>=1.40.0
