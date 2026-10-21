@@ -1,16 +1,18 @@
 import toast from "react-hot-toast";
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Loader2, BookMarked, Plus, CheckSquare, Square } from 'lucide-react';
+import { Search, Loader2, BookMarked, Plus, CheckSquare, Square, Globe } from 'lucide-react';
 import { useStartDownload, useLibrary, useStartBulkDownload } from '@/hooks/useManga';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { MangaAccordion } from '@/components/MangaAccordion';
 import { Loader } from '@/components/Loader';
 import { Modal } from '@/components/Modal';
+import { ScraperModal } from '@/components/ScraperModal';
 
 export function Home() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isScraperModalOpen, setIsScraperModalOpen] = useState(false);
   const [inputUrl, setInputUrl] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
   const [isLoading, setIsLoading] = useState(false);
@@ -132,13 +134,23 @@ export function Home() {
           <h2 className="text-3xl font-bold text-foreground">Sua Biblioteca</h2>
         </div>
         
-        <button
-          onClick={() => setIsSearchModalOpen(true)}
-          className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full flex items-center justify-center transition-colors shadow-lg shrink-0"
-        >
-          <Plus size={18} className="mr-2" />
-          Baixar Novo
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsScraperModalOpen(true)}
+            className="bg-panel hover:bg-panel-light text-foreground border border-panel-light font-medium py-2 px-5 rounded-full flex items-center justify-center transition-colors shadow-sm shrink-0"
+          >
+            <Globe size={18} className="mr-2 text-primary" />
+            Scrapper
+          </button>
+
+          <button
+            onClick={() => setIsSearchModalOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full flex items-center justify-center transition-colors shadow-lg shrink-0"
+          >
+            <Plus size={18} className="mr-2" />
+            Baixar Novo
+          </button>
+        </div>
       </div>
 
       {/* SEARCH BAR */}
@@ -284,6 +296,11 @@ export function Home() {
           </div>
         )}
       </Modal>
+
+      <ScraperModal
+        isOpen={isScraperModalOpen}
+        onClose={() => setIsScraperModalOpen(false)}
+      />
     </div>
   );
 }
