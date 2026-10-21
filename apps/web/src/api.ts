@@ -17,6 +17,30 @@ export type LibraryManga = {
   status: string;
 };
 
+export interface ScraperChapterItem {
+  id: string;
+  number: string;
+  title?: string;
+  url: string;
+}
+
+export interface ScraperPreviewResponse {
+  supported: boolean;
+  provider: string;
+  mangaId: string;
+  title: string;
+  coverUrl?: string;
+  chapters: ScraperChapterItem[];
+}
+
+export interface ScraperStartPayload {
+  provider: string;
+  mangaId: string;
+  title: string;
+  chapters: ScraperChapterItem[];
+  forceTranslate?: boolean;
+}
+
 export const api = {
   getLibrary: async (): Promise<LibraryManga[]> => {
     const res = await fetch('/api/manga/library');
@@ -88,5 +112,31 @@ export const api = {
     if (!res.ok) {
       throw new Error('Failed to clear cache');
     }
+  },
+
+  previewScraper: async (url: string): Promise<ScraperPreviewResponse> => {
+    const res = await fetch('/api/scraper/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Falha ao buscar prévia da obra');
+    }
+    return res.json();
+  },
+
+  startScraper: async (payload: ScraperStartPayload): Promise<{ status: string; count: number }> => {
+    const res = await fetch('/api/scraper/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Falha ao iniciar scraping');
+    }
+    return res.json();
   },
 };
