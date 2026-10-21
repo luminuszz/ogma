@@ -177,59 +177,65 @@ async def scrape_and_download_chapter(
         await session.commit()
 
     # 2. Download and upload each image with browser context
-    async with httpx.AsyncClient(
-        headers={"referer": "https://lycantoons.com/"}, timeout=60.0
-    ) as client:
-        for page in pages:
-            try:
-                resp = await client.get(page.image_url)
-                resp.raise_for_status()
-                image_bytes = resp.content
+    has_failures = False
+    r = await redis.from_url(REDIS_URL)
+    try:
+        async with httpx.AsyncClient(
+            headers={"referer": "https://lycantoons.com/"}, timeout=60.0
+        ) as client:
+            for page in pages:
+                try:
+                    resp = await client.get(page.image_url)
+                    resp.raise_for_status()
+                    image_bytes = resp.content
 
-                dest_path = f"{chapter_id}/{page.page_index}.png"
-                image_url = await upload_image_to_r2(image_bytes, dest_path)
+                    dest_path = f"{chapter_id}/{page.page_index}.png"
+                    image_url = await upload_image_to_r2(image_bytes, dest_path)
 
-                async with AsyncSessionLocal() as session:
-                    res = await session.execute(
-                        select(Page).where(
-                            Page.chapter_id == chapter_id,
-                            Page.page_index == page.page_index,
+                    async with AsyncSessionLocal() as session:
+                        res = await session.execute(
+                            select(Page).where(
+                                Page.chapter_id == chapter_id,
+                                Page.page_index == page.page_index,
+                            )
                         )
+                        page_record = res.scalar_one_or_none()
+                        if page_record:
+                            page_record.status = TranslationStatus.DONE
+                            page_record.image_url = image_url
+                            await session.commit()
+
+                    # Publish SSE progress update
+                    await r.publish(
+                        f"chapter:{chapter_id}",
+                        json.dumps({"page_index": page.page_index, "url": image_url}),
                     )
-                    page_record = res.scalar_one_or_none()
-                    if page_record:
-                        page_record.status = TranslationStatus.DONE
-                        page_record.image_url = image_url
-                        await session.commit()
 
-                # Publish SSE progress update
-                r = await redis.from_url(REDIS_URL)
-                await r.publish(
-                    f"chapter:{chapter_id}",
-                    json.dumps({"page_index": page.page_index, "url": image_url}),
-                )
-                await r.aclose()
-
-            except Exception as e:  # noqa: BLE001
-                print(f"Error processing page {page.page_index} for {chapter_id}: {e}")
-                async with AsyncSessionLocal() as session:
-                    res = await session.execute(
-                        select(Page).where(
-                            Page.chapter_id == chapter_id,
-                            Page.page_index == page.page_index,
+                except Exception as e:  # noqa: BLE001
+                    has_failures = True
+                    print(f"Error processing page {page.page_index} for {chapter_id}: {e}")
+                    async with AsyncSessionLocal() as session:
+                        res = await session.execute(
+                            select(Page).where(
+                                Page.chapter_id == chapter_id,
+                                Page.page_index == page.page_index,
+                            )
                         )
-                    )
-                    p_rec = res.scalar_one_or_none()
-                    if p_rec:
-                        p_rec.status = TranslationStatus.ERROR
-                        await session.commit()
+                        p_rec = res.scalar_one_or_none()
+                        if p_rec:
+                            p_rec.status = TranslationStatus.ERROR
+                            await session.commit()
+    finally:
+        await r.aclose()
 
-    # 3. Mark Chapter as DONE
+    # 3. Mark Chapter as DONE or ERROR
     async with AsyncSessionLocal() as session:
         ch_res = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
         chapter_obj = ch_res.scalar_one_or_none()
         if chapter_obj:
-            chapter_obj.status = TranslationStatus.DONE
+            chapter_obj.status = (
+                TranslationStatus.ERROR if has_failures else TranslationStatus.DONE
+            )
             await session.commit()
 
 

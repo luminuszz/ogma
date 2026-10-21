@@ -160,6 +160,7 @@ async def test_scrape_and_download_chapter_success():
             "chapter:ch-1",
             json.dumps({"page_index": 2, "url": "https://r2.test/ch-1/2.png"}),
         )
+        mock_redis.aclose.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -220,10 +221,15 @@ async def test_scrape_and_download_chapter_page_error():
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
+    mock_redis = AsyncMock()
+
     with patch("src.worker.get_registry", return_value=mock_reg), \
          patch("src.worker.AsyncSessionLocal", return_value=MockSessionContext()), \
          patch("src.worker.httpx.AsyncClient", side_effect=MockHttpClientContext), \
-         patch("src.worker.upload_image_to_r2", new_callable=AsyncMock) as mock_upload:
+         patch("src.worker.upload_image_to_r2", new_callable=AsyncMock) as mock_upload, \
+         patch("src.worker.redis.from_url", new_callable=AsyncMock) as mock_from_url:
+
+        mock_from_url.return_value = mock_redis
 
         await scrape_and_download_chapter(
             ctx={},
@@ -234,5 +240,6 @@ async def test_scrape_and_download_chapter_page_error():
 
         mock_upload.assert_not_called()
         assert page_record.status == TranslationStatus.ERROR
-        assert chapter_record.status == TranslationStatus.DONE
+        assert chapter_record.status == TranslationStatus.ERROR
+        mock_redis.aclose.assert_awaited_once()
 
