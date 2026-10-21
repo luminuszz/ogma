@@ -8,6 +8,12 @@ class ProviderRegistry:
     def register(self, provider: BaseProvider) -> None:
         self._providers.append(provider)
 
+    def get_provider(self, name: str) -> BaseProvider | None:
+        for provider in self._providers:
+            if provider.name == name:
+                return provider
+        return None
+
     def get_provider_for_url(self, url: str) -> BaseProvider | None:
         for provider in self._providers:
             if provider.can_handle(url):

@@ -29,6 +29,13 @@ def test_registry_register_and_get():
     assert found is not None
     assert found.name == "mock_provider"
 
+    by_name = registry.get_provider("mock_provider")
+    assert by_name is not None
+    assert by_name.name == "mock_provider"
+
+    not_found = registry.get_provider("non_existent")
+    assert not_found is None
+
 
 def test_registry_returns_none_for_unsupported_url():
     registry = ProviderRegistry()

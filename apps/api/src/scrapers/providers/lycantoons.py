@@ -70,15 +70,17 @@ class LycantoonsProvider(BaseProvider):
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-blink-features=AutomationControlled"]
             )
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-            )
-            page = await context.new_page()
-            await page.route("**/*", lambda route: route.abort() if any(ad in route.request.url for ad in ["pubadx", "analytics", "ads"]) else route.continue_())
-            await page.goto(series_url, wait_until="domcontentloaded", timeout=30000)
-            await page.wait_for_timeout(2000)
-            html = await page.content()
-            await browser.close()
+            try:
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                )
+                page = await context.new_page()
+                await page.route("**/*", lambda route: route.abort() if any(ad in route.request.url for ad in ["pubadx", "analytics", "ads"]) else route.continue_())
+                await page.goto(series_url, wait_until="domcontentloaded", timeout=30000)
+                await page.wait_for_timeout(2000)
+                html = await page.content()
+            finally:
+                await browser.close()
 
         parsed = self._parse_series_data_from_html(html, slug)
         return MangaPreview(
@@ -97,27 +99,28 @@ class LycantoonsProvider(BaseProvider):
                 headless=True,
                 args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-blink-features=AutomationControlled"]
             )
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-            )
-            page = await context.new_page()
-            await page.route("**/*", lambda route: route.abort() if any(ad in route.request.url for ad in ["pubadx", "analytics", "ads"]) else route.continue_())
-            await page.goto(chapter_url, wait_until="domcontentloaded", timeout=30000)
-            await page.wait_for_timeout(2000)
+            try:
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                )
+                page = await context.new_page()
+                await page.route("**/*", lambda route: route.abort() if any(ad in route.request.url for ad in ["pubadx", "analytics", "ads"]) else route.continue_())
+                await page.goto(chapter_url, wait_until="domcontentloaded", timeout=30000)
+                await page.wait_for_timeout(2000)
 
-            # Scroll to trigger lazy loading
-            for _ in range(12):
-                await page.evaluate("window.scrollBy(0, 2500)")
-                await page.wait_for_timeout(150)
+                # Scroll to trigger lazy loading
+                for _ in range(12):
+                    await page.evaluate("window.scrollBy(0, 2500)")
+                    await page.wait_for_timeout(150)
 
-            image_urls = await page.evaluate(f"""() => {{
-                const imgs = Array.from(document.querySelectorAll('img'))
-                    .map(i => i.src)
-                    .filter(src => src.includes('/file/lycantoons/{slug}/cap-'));
-                return Array.from(new Set(imgs));
-            }}""")
-
-            await browser.close()
+                image_urls = await page.evaluate(f"""() => {{
+                    const imgs = Array.from(document.querySelectorAll('img'))
+                        .map(i => i.src)
+                        .filter(src => src.includes('/file/lycantoons/{slug}/cap-'));
+                    return Array.from(new Set(imgs));
+                }}""")
+            finally:
+                await browser.close()
 
         # Sort pages by index pattern (page-XXXX.jpg)
         image_urls.sort()

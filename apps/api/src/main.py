@@ -11,6 +11,7 @@ from sse_starlette.sse import EventSourceResponse
 from src.db.database import AsyncSessionLocal
 from src.db.models import Chapter, Manga, Page, TranslationStatus
 from src.mangadex import fetch_chapter_metadata, fetch_chapter_pages, fetch_manga_feed
+from src.scrapers.base import ChapterItem
 from src.scrapers.registry import get_registry
 from src.services.storage import delete_chapter_from_r2
 from src.worker import get_redis_settings
@@ -415,7 +416,7 @@ class ScraperStartRequest(BaseModel):
     provider: str
     mangaId: str
     title: str
-    chapters: list[dict]
+    chapters: list[ChapterItem]
     forceTranslate: bool = False
 
 
@@ -445,7 +446,7 @@ async def scraper_preview(req: ScraperPreviewRequest):
 
 
 @app.post("/api/scraper/start")
-async def scraper_start(req: ScraperStartRequest, background_tasks: BackgroundTasks):
+async def scraper_start(req: ScraperStartRequest):
     registry = get_registry()
     if req.provider not in registry.list_providers():
         raise HTTPException(status_code=400, detail="Provedor inválido.")
@@ -463,14 +464,14 @@ async def scraper_start(req: ScraperStartRequest, background_tasks: BackgroundTa
         # 2. Ensure Chapters exist
         for ch in req.chapters:
             ch_res = await session.execute(
-                select(Chapter).where(Chapter.id == ch["id"])
+                select(Chapter).where(Chapter.id == ch.id)
             )
             chapter_obj = ch_res.scalar_one_or_none()
             if not chapter_obj:
                 chapter_obj = Chapter(
-                    id=ch["id"],
+                    id=ch.id,
                     manga_id=req.mangaId,
-                    chapter_number=str(ch.get("number", "")),
+                    chapter_number=str(ch.number),
                     total_pages=0,
                     status=TranslationStatus.PROCESSING,
                 )
@@ -485,10 +486,10 @@ async def scraper_start(req: ScraperStartRequest, background_tasks: BackgroundTa
         await redis_pool.enqueue_job(
             "scrape_and_download_chapter",
             req.provider,
-            ch["id"],
-            ch["url"],
+            ch.id,
+            ch.url,
             req.forceTranslate,
-            _job_id=f"scrape_{ch['id']}",
+            _job_id=f"scrape_{ch.id}",
         )
 
     return {"status": "queued", "count": len(req.chapters)}

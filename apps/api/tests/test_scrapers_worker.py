@@ -16,7 +16,7 @@ def test_worker_settings_registers_scraper_job():
 async def test_scrape_and_download_chapter_provider_not_found():
     with patch("src.worker.get_registry") as mock_get_reg:
         mock_reg = MagicMock()
-        mock_reg._providers = []
+        mock_reg.get_provider.return_value = None
         mock_get_reg.return_value = mock_reg
 
         with pytest.raises(ValueError, match="Provider nonexistent not found."):
@@ -41,7 +41,7 @@ async def test_scrape_and_download_chapter_success():
     )
 
     mock_reg = MagicMock()
-    mock_reg._providers = [mock_provider]
+    mock_reg.get_provider.return_value = mock_provider
 
     # 2. Setup mock DB session
     chapter_record = Chapter(id="ch-1", total_pages=0, status=TranslationStatus.PENDING)
@@ -174,7 +174,7 @@ async def test_scrape_and_download_chapter_page_error():
     )
 
     mock_reg = MagicMock()
-    mock_reg._providers = [mock_provider]
+    mock_reg.get_provider.return_value = mock_provider
 
     chapter_record = Chapter(id="ch-error", total_pages=0, status=TranslationStatus.PENDING)
     page_record = Page(chapter_id="ch-error", page_index=1, status=TranslationStatus.PENDING)
@@ -242,4 +242,72 @@ async def test_scrape_and_download_chapter_page_error():
         assert page_record.status == TranslationStatus.ERROR
         assert chapter_record.status == TranslationStatus.ERROR
         mock_redis.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_scrape_and_download_chapter_extraction_error():
+    mock_provider = MagicMock()
+    mock_provider.name = "test_provider"
+    mock_provider.extract_chapter_pages = AsyncMock(side_effect=RuntimeError("Extraction crashed"))
+
+    mock_reg = MagicMock()
+    mock_reg.get_provider.return_value = mock_provider
+
+    chapter_record = Chapter(id="ch-fail", total_pages=0, status=TranslationStatus.PENDING)
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=chapter_record)))
+
+    class MockSessionContext:
+        async def __aenter__(self):
+            return mock_session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    with patch("src.worker.get_registry", return_value=mock_reg), \
+         patch("src.worker.AsyncSessionLocal", return_value=MockSessionContext()):
+        with pytest.raises(RuntimeError, match="Extraction crashed"):
+            await scrape_and_download_chapter(
+                ctx={},
+                provider_name="test_provider",
+                chapter_id="ch-fail",
+                chapter_url="https://test.com/ch-fail",
+            )
+
+        assert chapter_record.status == TranslationStatus.ERROR
+        mock_session.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_scrape_and_download_chapter_empty_pages_error():
+    mock_provider = MagicMock()
+    mock_provider.name = "test_provider"
+    mock_provider.extract_chapter_pages = AsyncMock(return_value=[])
+
+    mock_reg = MagicMock()
+    mock_reg.get_provider.return_value = mock_provider
+
+    chapter_record = Chapter(id="ch-empty", total_pages=0, status=TranslationStatus.PENDING)
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=chapter_record)))
+
+    class MockSessionContext:
+        async def __aenter__(self):
+            return mock_session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    with patch("src.worker.get_registry", return_value=mock_reg), \
+         patch("src.worker.AsyncSessionLocal", return_value=MockSessionContext()):
+        with pytest.raises(ValueError, match="No pages extracted"):
+            await scrape_and_download_chapter(
+                ctx={},
+                provider_name="test_provider",
+                chapter_id="ch-empty",
+                chapter_url="https://test.com/ch-empty",
+            )
+
+        assert chapter_record.status == TranslationStatus.ERROR
+        mock_session.commit.assert_awaited()
 

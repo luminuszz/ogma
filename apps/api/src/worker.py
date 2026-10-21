@@ -143,12 +143,24 @@ async def scrape_and_download_chapter(
     force_translate: bool = False,
 ):
     registry = get_registry()
-    provider = next((p for p in registry._providers if p.name == provider_name), None)
+    provider = registry.get_provider(provider_name)
     if not provider:
         raise ValueError(f"Provider {provider_name} not found.")
 
     # 1. Extract pages using the provider
-    pages = await provider.extract_chapter_pages(chapter_url)
+    try:
+        pages = await provider.extract_chapter_pages(chapter_url)
+        if not pages:
+            raise ValueError(f"No pages extracted for chapter {chapter_url}")
+    except Exception as e:
+        print(f"Error extracting pages for chapter {chapter_id}: {e}")
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+            chapter_obj = result.scalar_one_or_none()
+            if chapter_obj:
+                chapter_obj.status = TranslationStatus.ERROR
+                await session.commit()
+        raise
 
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
