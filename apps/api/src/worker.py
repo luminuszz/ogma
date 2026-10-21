@@ -15,8 +15,15 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 WORKER_ML_URL = os.getenv("WORKER_ML_URL", "http://manga-translator:5003")
 
 
+def make_redis_settings(dsn: str = REDIS_URL) -> RedisSettings:
+    settings = RedisSettings.from_dsn(dsn)
+    settings.conn_retries = 10
+    settings.retry_on_timeout = True
+    return settings
+
+
 async def get_redis_settings():
-    return RedisSettings.from_dsn(REDIS_URL)
+    return make_redis_settings()
 
 
 async def process_page(
@@ -250,4 +257,4 @@ async def scrape_and_download_chapter(
 class WorkerSettings:
     functions: list = [process_page, scrape_and_download_chapter]  # noqa: RUF012
     max_jobs = 3
-    redis_settings = RedisSettings.from_dsn(REDIS_URL)
+    redis_settings = make_redis_settings()

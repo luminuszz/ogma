@@ -156,3 +156,55 @@ async def test_scraper_start_success():
             _job_id="scrape_ch-1",
         )
 
+
+@pytest.mark.asyncio
+async def test_retry_scraped_chapter_success():
+    from src.db.models import Chapter, TranslationStatus
+
+    chapter_record = Chapter(
+        id="lycantoons:mock-slug:2",
+        manga_id="lycantoons:mock-slug",
+        chapter_number="2",
+        status=TranslationStatus.ERROR,
+    )
+
+    mock_session = AsyncMock()
+    mock_session.commit = AsyncMock()
+    mock_res = MagicMock()
+    mock_res.scalar_one_or_none.return_value = chapter_record
+    mock_session.execute = AsyncMock(return_value=mock_res)
+
+    class MockSessionContext:
+        async def __aenter__(self):
+            return mock_session
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    mock_redis = AsyncMock()
+
+    with patch("src.main.get_registry") as mock_get_registry, \
+         patch("src.main.AsyncSessionLocal", return_value=MockSessionContext()), \
+         patch("src.main.redis_pool", mock_redis):
+
+        mock_provider = MagicMock()
+        mock_registry = MagicMock()
+        mock_registry.get_provider.return_value = mock_provider
+        mock_get_registry.return_value = mock_registry
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            response = await ac.post("/api/manga/lycantoons:mock-slug:2/retry")
+            assert response.status_code == 200
+            assert response.json() == {"status": "retrying"}
+
+        assert chapter_record.status == TranslationStatus.PROCESSING
+        mock_redis.delete.assert_awaited_once_with("arq:result:scrape_lycantoons:mock-slug:2")
+        mock_redis.enqueue_job.assert_awaited_once_with(
+            "scrape_and_download_chapter",
+            "lycantoons",
+            "lycantoons:mock-slug:2",
+            "https://lycantoons.com/series/mock-slug/2",
+            False,
+            _job_id="scrape_lycantoons:mock-slug:2",
+        )
+

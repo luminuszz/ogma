@@ -204,12 +204,45 @@ async def process_chapter(
 @app.post("/api/manga/{chapter_id}/retry")
 async def retry_chapter(chapter_id: str, background_tasks: BackgroundTasks):
     try:
-        from sqlalchemy import select
-
-        from src.db.database import AsyncSessionLocal
-        from src.db.models import Chapter, Page, TranslationStatus
         from src.mangadex import fetch_chapter_metadata, fetch_chapter_pages
-        
+
+        if ":" in chapter_id:
+            import time
+            parts = chapter_id.split(":")
+            provider_name = parts[0]
+            registry = get_registry()
+            provider = registry.get_provider(provider_name)
+            if not provider:
+                raise HTTPException(status_code=400, detail=f"Provedor {provider_name} não encontrado.")
+
+            async with AsyncSessionLocal() as session:
+                ch_res = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+                ch_obj = ch_res.scalar_one_or_none()
+                if not ch_obj:
+                    raise HTTPException(status_code=404, detail="Capítulo não encontrado.")
+                ch_obj.status = TranslationStatus.PROCESSING
+                await session.commit()
+
+            ch_url = ""
+            if provider_name == "lycantoons" and len(parts) >= 3:
+                slug, num = parts[1], parts[2]
+                ch_url = f"https://lycantoons.com/series/{slug}/{num}"
+
+            job_id = f"scrape_{chapter_id}"
+            try:
+                await redis_pool.delete(f"arq:result:{job_id}")
+            except Exception:
+                pass
+            await redis_pool.enqueue_job(
+                "scrape_and_download_chapter",
+                provider_name,
+                chapter_id,
+                ch_url,
+                False,
+                _job_id=job_id,
+            )
+            return {"status": "retrying"}
+
         pages_data = await fetch_chapter_pages(chapter_id)
         meta = await fetch_chapter_metadata(chapter_id)
         
@@ -483,13 +516,18 @@ async def scraper_start(req: ScraperStartRequest):
 
     # 3. Enqueue ARQ jobs
     for ch in req.chapters:
+        job_id = f"scrape_{ch.id}"
+        try:
+            await redis_pool.delete(f"arq:result:{job_id}")
+        except Exception:
+            pass
         await redis_pool.enqueue_job(
             "scrape_and_download_chapter",
             req.provider,
             ch.id,
             ch.url,
             req.forceTranslate,
-            _job_id=f"scrape_{ch.id}",
+            _job_id=job_id,
         )
 
     return {"status": "queued", "count": len(req.chapters)}
