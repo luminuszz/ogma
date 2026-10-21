@@ -29,3 +29,44 @@ def test_lycantoons_parse_rsc_payload():
     assert len(info["chapters"]) == 2
     assert info["chapters"][0]["number"] == "1"
     assert info["chapters"][1]["number"] == "2"
+
+
+@pytest.mark.asyncio
+async def test_lycantoons_download_pages(monkeypatch):
+    from unittest.mock import AsyncMock, MagicMock
+    from src.scrapers.base import PageItem
+
+    mock_resp = MagicMock()
+    mock_resp.status = 200
+    mock_resp.body = AsyncMock(return_value=b"fake-bytes")
+
+    mock_page = AsyncMock()
+    mock_page.goto = AsyncMock(return_value=mock_resp)
+
+    mock_context = AsyncMock()
+    mock_context.new_page = AsyncMock(return_value=mock_page)
+
+    mock_browser = AsyncMock()
+    mock_browser.new_context = AsyncMock(return_value=mock_context)
+    mock_browser.close = AsyncMock()
+
+    mock_playwright = MagicMock()
+    mock_playwright.chromium.launch = AsyncMock(return_value=mock_browser)
+
+    class MockAsyncPlaywright:
+        async def __aenter__(self):
+            return mock_playwright
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    monkeypatch.setattr("src.scrapers.providers.lycantoons.async_playwright", lambda: MockAsyncPlaywright())
+
+    provider = LycantoonsProvider()
+    pages = [PageItem(page_index=0, image_url="https://cdn.lycantoons.com/p0.jpg")]
+    downloaded = []
+    async for p, body in provider.download_pages(pages):
+        downloaded.append((p.page_index, body))
+
+    assert len(downloaded) == 1
+    assert downloaded[0] == (0, b"fake-bytes")
+    mock_browser.close.assert_awaited_once()

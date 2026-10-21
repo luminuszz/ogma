@@ -40,6 +40,12 @@ async def test_scrape_and_download_chapter_success():
         ]
     )
 
+    async def mock_download_pages(pages):
+        for p in pages:
+            yield p, b"fake-image-bytes"
+
+    mock_provider.download_pages = mock_download_pages
+
     mock_reg = MagicMock()
     mock_reg.get_provider.return_value = mock_provider
 
@@ -121,7 +127,6 @@ async def test_scrape_and_download_chapter_success():
 
     with patch("src.worker.get_registry", return_value=mock_reg), \
          patch("src.worker.AsyncSessionLocal", return_value=MockSessionContext()), \
-         patch("src.worker.httpx.AsyncClient", side_effect=MockHttpClientContext), \
          patch("src.worker.upload_image_to_r2", new_callable=AsyncMock) as mock_upload, \
          patch("src.worker.redis.from_url", new_callable=AsyncMock) as mock_from_url:
 
@@ -173,6 +178,12 @@ async def test_scrape_and_download_chapter_page_error():
         ]
     )
 
+    async def mock_download_pages_error(pages):
+        for p in pages:
+            yield p, b"fake-image-bytes"
+
+    mock_provider.download_pages = mock_download_pages_error
+
     mock_reg = MagicMock()
     mock_reg.get_provider.return_value = mock_provider
 
@@ -208,27 +219,14 @@ async def test_scrape_and_download_chapter_page_error():
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
-    mock_http_client = AsyncMock()
-    mock_http_client.get = AsyncMock(side_effect=RuntimeError("Download timeout"))
-
-    class MockHttpClientContext:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        async def __aenter__(self):
-            return mock_http_client
-
-        async def __aexit__(self, exc_type, exc_val, exc_tb):
-            pass
-
     mock_redis = AsyncMock()
 
     with patch("src.worker.get_registry", return_value=mock_reg), \
          patch("src.worker.AsyncSessionLocal", return_value=MockSessionContext()), \
-         patch("src.worker.httpx.AsyncClient", side_effect=MockHttpClientContext), \
          patch("src.worker.upload_image_to_r2", new_callable=AsyncMock) as mock_upload, \
          patch("src.worker.redis.from_url", new_callable=AsyncMock) as mock_from_url:
 
+        mock_upload.side_effect = RuntimeError("Upload error")
         mock_from_url.return_value = mock_redis
 
         await scrape_and_download_chapter(
@@ -238,7 +236,7 @@ async def test_scrape_and_download_chapter_page_error():
             chapter_url="https://test.com/ch-error",
         )
 
-        mock_upload.assert_not_called()
+        mock_upload.assert_awaited_once()
         assert page_record.status == TranslationStatus.ERROR
         assert chapter_record.status == TranslationStatus.ERROR
         mock_redis.aclose.assert_awaited_once()

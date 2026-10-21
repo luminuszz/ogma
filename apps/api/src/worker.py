@@ -188,55 +188,51 @@ async def scrape_and_download_chapter(
 
         await session.commit()
 
-    # 2. Download and upload each image with browser context
+    # 2. Download and upload each image with provider context
     has_failures = False
     r = await redis.from_url(REDIS_URL)
     try:
-        async with httpx.AsyncClient(
-            headers={"referer": "https://lycantoons.com/"}, timeout=60.0
-        ) as client:
-            for page in pages:
-                try:
-                    resp = await client.get(page.image_url)
-                    resp.raise_for_status()
-                    image_bytes = resp.content
+        async for page, image_bytes in provider.download_pages(pages):
+            try:
+                dest_path = f"{chapter_id}/{page.page_index}.png"
+                image_url = await upload_image_to_r2(image_bytes, dest_path)
 
-                    dest_path = f"{chapter_id}/{page.page_index}.png"
-                    image_url = await upload_image_to_r2(image_bytes, dest_path)
-
-                    async with AsyncSessionLocal() as session:
-                        res = await session.execute(
-                            select(Page).where(
-                                Page.chapter_id == chapter_id,
-                                Page.page_index == page.page_index,
-                            )
+                async with AsyncSessionLocal() as session:
+                    res = await session.execute(
+                        select(Page).where(
+                            Page.chapter_id == chapter_id,
+                            Page.page_index == page.page_index,
                         )
-                        page_record = res.scalar_one_or_none()
-                        if page_record:
-                            page_record.status = TranslationStatus.DONE
-                            page_record.image_url = image_url
-                            await session.commit()
-
-                    # Publish SSE progress update
-                    await r.publish(
-                        f"chapter:{chapter_id}",
-                        json.dumps({"page_index": page.page_index, "url": image_url}),
                     )
+                    page_record = res.scalar_one_or_none()
+                    if page_record:
+                        page_record.status = TranslationStatus.DONE
+                        page_record.image_url = image_url
+                        await session.commit()
 
-                except Exception as e:  # noqa: BLE001
-                    has_failures = True
-                    print(f"Error processing page {page.page_index} for {chapter_id}: {e}")
-                    async with AsyncSessionLocal() as session:
-                        res = await session.execute(
-                            select(Page).where(
-                                Page.chapter_id == chapter_id,
-                                Page.page_index == page.page_index,
-                            )
+                # Publish SSE progress update
+                await r.publish(
+                    f"chapter:{chapter_id}",
+                    json.dumps({"page_index": page.page_index, "url": image_url}),
+                )
+
+            except Exception as e:  # noqa: BLE001
+                has_failures = True
+                print(f"Error processing page {page.page_index} for {chapter_id}: {e}")
+                async with AsyncSessionLocal() as session:
+                    res = await session.execute(
+                        select(Page).where(
+                            Page.chapter_id == chapter_id,
+                            Page.page_index == page.page_index,
                         )
-                        p_rec = res.scalar_one_or_none()
-                        if p_rec:
-                            p_rec.status = TranslationStatus.ERROR
-                            await session.commit()
+                    )
+                    p_rec = res.scalar_one_or_none()
+                    if p_rec:
+                        p_rec.status = TranslationStatus.ERROR
+                        await session.commit()
+    except Exception as e:
+        has_failures = True
+        print(f"Error downloading pages for chapter {chapter_id}: {e}")
     finally:
         await r.aclose()
 
