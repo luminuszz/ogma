@@ -102,6 +102,7 @@ export const useChapterSSEListener = (chapterId: string | undefined, status: Cha
 
   useEffect(() => {
     if (!chapterId || !status || status.status === 'done' || status.status === 'error') return;
+    if (typeof EventSource === 'undefined') return;
 
     const evtSource = new EventSource(`/api/manga/${chapterId}/stream`);
 
@@ -120,6 +121,7 @@ export const useChapterSSEListener = (chapterId: string | undefined, status: Cha
             completed: Math.max(old.completed || 0, data.pageIndex + 1),
           };
         });
+        queryClient.invalidateQueries({ queryKey: ['openrouter-credits'] });
       } catch (err) {
         console.error('SSE Error:', err);
       }

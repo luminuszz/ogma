@@ -49,6 +49,15 @@ export interface ScraperStartPayload {
   forceTranslate?: boolean;
 }
 
+export interface OpenRouterCredits {
+  enabled: boolean;
+  remaining: number;
+  usage_daily: number;
+  usage_total: number;
+  limit?: number | null;
+  error?: string;
+}
+
 export const api = {
   getLibrary: async (): Promise<LibraryManga[]> => {
     const res = await fetch('/api/manga/library');
@@ -144,6 +153,15 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || 'Falha ao iniciar scraping');
+    }
+    return res.json();
+  },
+
+  getOpenRouterCredits: async (): Promise<OpenRouterCredits> => {
+    const res = await fetch('/api/openrouter/credits');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Falha ao buscar créditos do OpenRouter');
     }
     return res.json();
   },

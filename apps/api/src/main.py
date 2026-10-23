@@ -1,9 +1,11 @@
 import asyncio
 import difflib
+import os
 import re
 import shutil
 from pathlib import Path
 
+import httpx
 import redis.asyncio as redis
 from arq import create_pool
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -27,8 +29,6 @@ async def startup():
     global redis_pool
     redis_pool = await create_pool(await get_redis_settings())
 
-
-import os
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
@@ -594,4 +594,91 @@ async def scraper_start(req: ScraperStartRequest):
         )
 
     return {"status": "queued", "count": len(req.chapters)}
+
+
+@app.get("/api/openrouter/credits")
+async def get_openrouter_credits():
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        return {
+            "enabled": False,
+            "remaining": 0.0,
+            "usage_daily": 0.0,
+            "usage_total": 0.0,
+            "limit": None,
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://openrouter.ai/api/v1/auth/key",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            resp.raise_for_status()
+            res_json = resp.json()
+            data = res_json.get("data", res_json) if isinstance(res_json, dict) else {}
+            if not isinstance(data, dict):
+                data = {}
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"OpenRouter API error ({e.response.status_code}): {e.response.text or str(e)}",
+        ) from e
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Erro de conexão com OpenRouter: {e!s}",
+        ) from e
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno ao consultar OpenRouter: {e!s}",
+        ) from e
+
+    remaining_val = data.get("limit_remaining")
+    if remaining_val is None:
+        total_credits = data.get("total_credits")
+        if total_credits is not None:
+            total_usage = data.get("total_usage", data.get("usage", 0.0))
+            try:
+                remaining_val = float(total_credits) - float(total_usage or 0.0)
+            except (ValueError, TypeError):
+                remaining_val = None
+
+    if remaining_val is None:
+        effective_budget = data.get("effective_budget")
+        if isinstance(effective_budget, dict) and effective_budget.get("remaining_usd") is not None:
+            try:
+                remaining_val = float(effective_budget["remaining_usd"])
+            except (ValueError, TypeError):
+                remaining_val = None
+
+    try:
+        remaining = round(float(remaining_val), 4) if remaining_val is not None else 0.0
+    except (ValueError, TypeError):
+        remaining = 0.0
+
+    try:
+        usage_daily = round(float(data.get("usage_daily", 0.0) or 0.0), 4)
+    except (ValueError, TypeError):
+        usage_daily = 0.0
+
+    try:
+        usage_total = round(float(data.get("usage", 0.0) or 0.0), 4)
+    except (ValueError, TypeError):
+        usage_total = 0.0
+
+    limit_val = data.get("limit")
+    try:
+        limit = round(float(limit_val), 4) if limit_val is not None else None
+    except (ValueError, TypeError):
+        limit = None
+
+    return {
+        "enabled": True,
+        "remaining": remaining,
+        "usage_daily": usage_daily,
+        "usage_total": usage_total,
+        "limit": limit,
+    }
 

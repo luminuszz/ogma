@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Loader2, BookMarked, Plus, CheckSquare, Square, Globe } from 'lucide-react';
 import { useStartDownload, useLibrary, useStartBulkDownload } from '@/hooks/useManga';
@@ -9,6 +9,7 @@ import { MangaAccordion } from '@/components/MangaAccordion';
 import { Loader } from '@/components/Loader';
 import { Modal } from '@/components/Modal';
 import { ScraperModal } from '@/components/ScraperModal';
+import { OpenRouterCreditsBadge } from '@/components/OpenRouterCreditsBadge';
 
 export function Home() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -115,6 +116,7 @@ export function Home() {
       setSelectedChapters(new Set());
       setIsSearchModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['openrouter-credits'] });
       toast.success(`${count} capítulos adicionados à fila!`);
     } catch (err: any) {
       setError(err.message || 'Failed to start bulk download');
@@ -123,6 +125,47 @@ export function Home() {
       setIsLoading(false);
     }
   };
+
+  // Real-time credits refresh on active chapters SSE events
+  const processingChapterIds = useMemo(() => {
+    if (!libraryData) return '';
+    return libraryData
+      .filter((item) => item.status === 'processing' || (item.total === 0 || item.downloaded < item.total))
+      .map((item) => item.id)
+      .sort()
+      .join(',');
+  }, [libraryData]);
+
+  useEffect(() => {
+    if (typeof EventSource === 'undefined' || !processingChapterIds) return;
+
+    const ids = processingChapterIds.split(',').filter(Boolean);
+    const eventSources = ids.map((id) => {
+      const es = new EventSource(`/api/manga/${id}/stream`);
+      es.onmessage = () => {
+        queryClient.invalidateQueries({ queryKey: ['openrouter-credits'] });
+      };
+      return es;
+    });
+
+    return () => {
+      eventSources.forEach((es) => es.close());
+    };
+  }, [processingChapterIds, queryClient]);
+
+  // Invalidate credits whenever downloaded count increases during library polling
+  const totalDownloaded = useMemo(() => {
+    if (!libraryData) return 0;
+    return libraryData.reduce((acc, curr) => acc + (curr.downloaded || 0), 0);
+  }, [libraryData]);
+
+  const prevTotalDownloadedRef = useRef(totalDownloaded);
+  useEffect(() => {
+    if (prevTotalDownloadedRef.current !== totalDownloaded) {
+      prevTotalDownloadedRef.current = totalDownloaded;
+      queryClient.invalidateQueries({ queryKey: ['openrouter-credits'] });
+    }
+  }, [totalDownloaded, queryClient]);
 
   return (
     <div className="flex-1 flex flex-col items-center p-4 max-w-4xl mx-auto w-full gap-8 mt-10">
@@ -135,6 +178,8 @@ export function Home() {
         </div>
         
         <div className="flex items-center gap-3">
+          <OpenRouterCreditsBadge />
+
           <button
             onClick={() => setIsScraperModalOpen(true)}
             className="bg-panel hover:bg-panel-light text-foreground border border-panel-light font-medium py-2 px-5 rounded-full flex items-center justify-center transition-colors shadow-sm shrink-0"
