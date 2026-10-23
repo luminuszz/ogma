@@ -237,7 +237,12 @@ async def retry_chapter(chapter_id: str, background_tasks: BackgroundTasks):
 
             job_id = f"scrape_{chapter_id}"
             try:
-                await redis_pool.delete(f"arq:result:{job_id}")
+                await redis_pool.delete(
+                    f"arq:result:{job_id}",
+                    f"arq:job:{job_id}",
+                    f"arq:in-progress:{job_id}",
+                )
+                await redis_pool.zrem("arq:queue", job_id)
             except Exception:
                 pass
             await redis_pool.enqueue_job(
@@ -411,6 +416,18 @@ async def delete_chapter(chapter_id: str):
         except Exception as e:
             print(f"Failed to delete chapter {chapter_id} from R2: {e}")
 
+        # Delete from Redis queue / ARQ keys
+        job_id = f"scrape_{chapter_id}"
+        try:
+            await redis_pool.delete(
+                f"arq:result:{job_id}",
+                f"arq:job:{job_id}",
+                f"arq:in-progress:{job_id}",
+            )
+            await redis_pool.zrem("arq:queue", job_id)
+        except Exception:
+            pass
+
         return {"status": "deleted"}
     except HTTPException:
         raise
@@ -581,7 +598,12 @@ async def scraper_start(req: ScraperStartRequest):
     for ch in req.chapters:
         job_id = f"scrape_{ch.id}"
         try:
-            await redis_pool.delete(f"arq:result:{job_id}")
+            await redis_pool.delete(
+                f"arq:result:{job_id}",
+                f"arq:job:{job_id}",
+                f"arq:in-progress:{job_id}",
+            )
+            await redis_pool.zrem("arq:queue", job_id)
         except Exception:
             pass
         await redis_pool.enqueue_job(

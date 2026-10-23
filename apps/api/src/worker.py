@@ -116,6 +116,20 @@ async def process_page(
                 page_obj.image_url = image_url  # type: ignore
                 await session.commit()
 
+                # Check if all pages for the chapter are done
+                pages_res = await session.execute(
+                    select(Page.status).where(Page.chapter_id == chapter_id)
+                )
+                statuses = pages_res.scalars().all()
+                if statuses and all(s == TranslationStatus.DONE for s in statuses):
+                    ch_res = await session.execute(
+                        select(Chapter).where(Chapter.id == chapter_id)
+                    )
+                    chapter_obj = ch_res.scalar_one_or_none()
+                    if chapter_obj and chapter_obj.status != TranslationStatus.DONE:
+                        chapter_obj.status = TranslationStatus.DONE
+                        await session.commit()
+
         r = await redis.from_url(REDIS_URL)
         await r.publish(f"chapter:{chapter_id}", json.dumps({"page_index": page_index, "url": image_url}))
         await r.aclose()

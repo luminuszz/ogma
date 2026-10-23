@@ -198,7 +198,12 @@ async def test_retry_scraped_chapter_success():
             assert response.json() == {"status": "retrying"}
 
         assert chapter_record.status == TranslationStatus.PROCESSING
-        mock_redis.delete.assert_awaited_once_with("arq:result:scrape_lycantoons:mock-slug:2")
+        mock_redis.delete.assert_awaited_once_with(
+            "arq:result:scrape_lycantoons:mock-slug:2",
+            "arq:job:scrape_lycantoons:mock-slug:2",
+            "arq:in-progress:scrape_lycantoons:mock-slug:2",
+        )
+        mock_redis.zrem.assert_awaited_once_with("arq:queue", "scrape_lycantoons:mock-slug:2")
         mock_redis.enqueue_job.assert_awaited_once_with(
             "scrape_and_download_chapter",
             "lycantoons",
