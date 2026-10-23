@@ -24,6 +24,12 @@ export interface ScraperChapterItem {
   url: string;
 }
 
+export interface ExistingMangaSummary {
+  id: string;
+  title: string;
+  existingChapterNumbers: string[];
+}
+
 export interface ScraperPreviewResponse {
   supported: boolean;
   provider: string;
@@ -31,6 +37,8 @@ export interface ScraperPreviewResponse {
   title: string;
   coverUrl?: string;
   chapters: ScraperChapterItem[];
+  existingWorks?: ExistingMangaSummary[];
+  suggestedMangaId?: string | null;
 }
 
 export interface ScraperStartPayload {

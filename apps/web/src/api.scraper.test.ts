@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { api, type ScraperStartPayload } from './api';
+import { api, type ScraperStartPayload, type ScraperPreviewResponse, type ExistingMangaSummary } from './api';
 
 describe('Scraper API Client', () => {
   beforeEach(() => {
@@ -28,6 +28,41 @@ describe('Scraper API Client', () => {
         body: JSON.stringify({ url: 'https://lycantoons.com/series/test' })
       }));
       expect(res).toEqual(mockResponse);
+    });
+
+    it('parses existingWorks and suggestedMangaId correctly', async () => {
+      const existingWorks: ExistingMangaSummary[] = [
+        {
+          id: 'lycantoons:a-empregada-secreta-do-conde',
+          title: 'A Empregada Secreta do Conde',
+          existingChapterNumbers: ['1', '2', '3'],
+        },
+      ];
+
+      const mockResponse: ScraperPreviewResponse = {
+        supported: true,
+        provider: 'valirscans',
+        mangaId: 'valirscans:the-counts-secret-maid',
+        title: "The Count's Secret Maid",
+        coverUrl: 'https://valirscans.org/cover.webp',
+        chapters: [
+          { id: 'valirscans:the-counts-secret-maid:1', number: '1', title: 'Cap 1', url: 'https://valirscans.org/1' },
+          { id: 'valirscans:the-counts-secret-maid:101', number: '101', title: 'Cap 101', url: 'https://valirscans.org/101' },
+        ],
+        existingWorks,
+        suggestedMangaId: 'lycantoons:a-empregada-secreta-do-conde',
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      const result = await api.previewScraper('https://valirscans.org/series/comic/the-counts-secret-maid');
+      expect(result.existingWorks).toHaveLength(1);
+      expect(result.existingWorks![0].id).toBe('lycantoons:a-empregada-secreta-do-conde');
+      expect(result.existingWorks![0].existingChapterNumbers).toEqual(['1', '2', '3']);
+      expect(result.suggestedMangaId).toBe('lycantoons:a-empregada-secreta-do-conde');
     });
 
     it('throws error with detail message on failed preview request', async () => {
