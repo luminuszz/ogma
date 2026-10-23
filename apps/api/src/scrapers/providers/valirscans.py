@@ -1,3 +1,4 @@
+import html as html_lib
 import re
 from urllib.parse import urlparse
 
@@ -44,11 +45,11 @@ class ValirScansProvider(BaseProvider):
         if og_match:
             title = og_match.group(1).split(" - ")[0].strip()
             if title:
-                return title
+                return html_lib.unescape(title)
         h1_match = re.search(r'<h1[^>]*>([^<]+)</h1>', html, re.IGNORECASE)
         if h1_match:
-            return h1_match.group(1).strip()
-        return default.replace("-", " ").title()
+            return html_lib.unescape(h1_match.group(1).strip())
+        return html_lib.unescape(default.replace("-", " ").title())
 
     def _parse_cover(self, html: str) -> str | None:
         og_match = re.search(r'<meta\s+property=["\']og:image["\']\s+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
