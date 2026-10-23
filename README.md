@@ -13,11 +13,37 @@
 A tradução de mangás e webtoons independentes sempre foi um processo lento e braçal, dependendo de grupos de scanlation. Com a evolução da Inteligência Artificial em Visão Computacional (YOLO, PaddleOCR) e em LLMs, surgiu a oportunidade de criar um tradutor **on-demand e automatizado**. O objetivo do Ogma é permitir que leitores consumam conteúdo no exato instante de lançamento original, quebrando a barreira do idioma com alta fidelidade visual.
 
 ## ⚙️ Tecnologias Utilizadas
-- **Frontend:** React, TypeScript, Vite, TailwindCSS, TanStack React Query.
-- **Backend:** FastAPI (Python), PostgreSQL, Redis, BullMQ (Arq).
-- **IA e Tradução:** `manga-image-translator` (YOLOv8, PaddleOCR, Lama Inpainting, Llama/GPT-4o).
+- **Frontend:** React, TypeScript, Vite, TailwindCSS, TanStack React Query, Lucide Icons.
+- **Backend:** FastAPI (Python), PostgreSQL, Redis, BullMQ / Arq.
+- **IA e Tradução:** `manga-image-translator` (YOLOv8, PaddleOCR, LaMa Inpainting, Gemini 2.5 Flash via OpenRouter).
+- **Web Scraping:** Playwright Chromium headless, BeautifulSoup4, httpx.
 - **Armazenamento:** Cloudflare R2 (S3-compatible) para hospedagem ultrarrápida de imagens.
-- **Infraestrutura:** Docker e Docker Compose (Nvidia GPU Support).
+- **Infraestrutura:** Docker e Docker Compose (com suporte a aceleração por GPU NVIDIA).
+
+## ✨ Principais Funcionalidades
+
+### 🌐 Módulo Extensível de Scrapers & Valir Scans
+- **Arquitetura Plugável (`BaseProvider`):** Suporte nativo ao [MangaDex](https://mangadex.org/), [Lycantoons](https://lycantoons.com/) e [Valir Scans](https://valirscans.org/), expansível para novos sites via `ProviderRegistry`.
+- **Vinculação Inteligente de Obras:** Detecta semelhança entre obras importadas de fontes estrangeiras e títulos já existentes na sua biblioteca, permitindo mesclar capítulos inéditos em uma única obra sem duplicar registros.
+- **Bypass de Proteções:** Suporte a headless browser (Playwright) e paginação completa de capítulos.
+
+### 👁️ Tradução Multimodal com Visão Computacional (Gemini 2.5 Flash)
+- **Concordância de Gênero Visual:** Envia a imagem renderizada da página junto com os segmentos de texto para o modelo multimodal (`google/gemini-2.5-flash`), permitindo que a IA inspecione visualmente quem está falando no quadrinho e aplique a concordância gramatical correta em português (ex: *"fui a única que sobreviveu"*, *"obrigada"*, *"cansada"*).
+- **Tradução Fiel e Fluida:** Prompting avançado de 4 etapas (literal, desverbalização, refinamento cultural e polimento de concordância).
+
+### 💬 Typesetting e Renderização Inteligente de Balões
+- **Sem Estouro de Balão:** Trava estrita de delimitação (`dst_points = region.min_rect`), eliminando o bug de alargamento horizontal que vazava o texto para fora dos balões redondos.
+- **Redução Proporcional de Fonte:** Quando a tradução em português requer mais linhas, a fonte é redimensionada proporcionalmente para se ajustar perfeitamente ao espaço original.
+- **Centralização e Hifenação:** Alinhamento centralizado em balões de diálogo e separação silábica natural de palavras longas em português.
+
+### 💰 Monitor de Créditos do OpenRouter em Tempo Real
+- **Badge no Header da Home:** Exibe o saldo restante em dólares (`$X.XX`) diretamente no cabeçalho principal.
+- **Indicador de Status por Cores:**
+  - 🟢 **Verde:** Saldo $\ge \$2.00$
+  - 🟡 **Amarelo:** Saldo $< \$2.00$
+  - 🔴 **Vermelho:** Saldo $< \$0.50$
+- **Tooltip Detalhado:** Exibe gasto do dia atual, gasto acumulado total e limite da chave ao passar o mouse.
+- **Atualização Reativa (SSE):** O saldo é invalidado e atualizado instantaneamente a cada página traduzida via Server-Sent Events, além de suporte a refresh manual.
 
 ## 🛠️ Instalação
 
@@ -48,9 +74,9 @@ A tradução de mangás e webtoons independentes sempre foi um processo lento e 
    R2_BUCKET_NAME=ogma-storage
    R2_PUBLIC_URL=https://seu-dominio-r2.com
 
-   # Inteligência Artificial (Tradução LLM)
+   # Inteligência Artificial (Tradução Multimodal LLM)
    OPENROUTER_API_KEY=sk-or-v1-...
-   CUSTOM_OPENAI_MODEL=nousresearch/hermes-3-llama-3.1-70b
+   CUSTOM_OPENAI_MODEL=google/gemini-2.5-flash
    ```
 
 3. **Inicie os Contêineres:**
