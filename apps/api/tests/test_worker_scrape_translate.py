@@ -151,6 +151,6 @@ async def test_translate_page_image_calls_ml_service():
     assert res == b"translated-bytes"
     mock_client.post.assert_called_once()
     call_args, call_kwargs = mock_client.post.call_args
-    assert "/submit" in call_args[0]
+    assert "/translate/with-form/image" in call_args[0]
     assert "image" in call_kwargs["files"]
     assert "config" in call_kwargs["data"]
