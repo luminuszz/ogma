@@ -136,9 +136,20 @@ class ValirScansProvider(BaseProvider):
 
     async def extract_chapter_pages(self, chapter_url: str) -> list[PageItem]:
         html = await self._fetch_html(chapter_url)
-        # Matches media.valirscans.org images
-        found_urls = re.findall(r'https://media\.valirscans\.org/[^"\'\s>]+\.(?:webp|jpg|jpeg|png)', html)
-        unique_urls = list(dict.fromkeys(found_urls))
+        # Matches media.valirscans.org images. Prioritize full page content images (/p-...)
+        # to avoid capturing sliced fragment strips (/f-...)
+        p_urls = re.findall(
+            r'https://media\.valirscans\.org/[^"\'\s>]+/p-[^"\'\s>]+\.(?:webp|jpg|jpeg|png)',
+            html,
+        )
+        if p_urls:
+            unique_urls = list(dict.fromkeys(p_urls))
+        else:
+            all_urls = re.findall(
+                r'https://media\.valirscans\.org/[^"\'\s>]+\.(?:webp|jpg|jpeg|png)',
+                html,
+            )
+            unique_urls = list(dict.fromkeys(all_urls))
 
         pages = [
             PageItem(page_index=i + 1, image_url=img_url)

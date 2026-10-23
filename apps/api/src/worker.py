@@ -202,6 +202,7 @@ async def scrape_and_download_chapter(
                     try:
                         final_bytes = await translate_page_image(image_bytes, source_lang="ENG")
                     except Exception as trans_err:  # noqa: BLE001
+                        has_failures = True
                         print(
                             f"Translation failed for page {page.page_index} in {chapter_id}: {trans_err}. Falling back to original."
                         )
@@ -261,5 +262,6 @@ async def scrape_and_download_chapter(
 
 class WorkerSettings:
     functions: list = [process_page, scrape_and_download_chapter]  # noqa: RUF012
-    max_jobs = 3
+    max_jobs = 1
+    job_timeout = 3600
     redis_settings = make_redis_settings()
