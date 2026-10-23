@@ -1,4 +1,6 @@
 import asyncio
+import difflib
+import re
 import shutil
 from pathlib import Path
 
@@ -441,6 +443,27 @@ async def clear_cache():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class ExistingMangaSummary(BaseModel):
+    id: str
+    title: str
+    existingChapterNumbers: list[str]
+
+
+def find_suggested_manga_id(scraped_title: str, existing_mangas: list[ExistingMangaSummary]) -> str | None:
+    if not existing_mangas or not scraped_title:
+        return None
+    scraped_norm = re.sub(r"[^a-zA-Z0-9 ]", "", scraped_title.lower())
+    best_id = None
+    best_ratio = 0.0
+    for m in existing_mangas:
+        m_norm = re.sub(r"[^a-zA-Z0-9 ]", "", (m.title or "").lower())
+        ratio = difflib.SequenceMatcher(None, scraped_norm, m_norm).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_id = m.id
+    return best_id if best_ratio >= 0.3 else None
+
+
 class ScraperPreviewRequest(BaseModel):
     url: str
 
@@ -464,18 +487,53 @@ async def scraper_preview(req: ScraperPreviewRequest):
         )
     try:
         preview = await provider.extract_manga_info(req.url)
-        return {
-            "supported": True,
-            "provider": preview.provider,
-            "mangaId": preview.manga_id,
-            "title": preview.title,
-            "coverUrl": preview.cover_url,
-            "chapters": [c.model_dump() for c in preview.chapters],
-        }
     except Exception as e:  # noqa: BLE001
         raise HTTPException(
             status_code=500, detail=f"Erro ao extrair dados da obra: {e!s}"
         )
+
+    existing_works: list[ExistingMangaSummary] = []
+    try:
+        async with AsyncSessionLocal() as session:
+            mangas_res = await session.execute(select(Manga))
+            mangas = mangas_res.scalars().all()
+
+            chapters_res = await session.execute(
+                select(Chapter.manga_id, Chapter.chapter_number)
+            )
+            chapters_rows = chapters_res.all()
+
+            chapters_by_manga: dict[str, list[str]] = {}
+            for m_id, ch_num in chapters_rows:
+                if m_id and ch_num is not None:
+                    chapters_by_manga.setdefault(m_id, []).append(str(ch_num))
+
+            existing_works = [
+                ExistingMangaSummary(
+                    id=m.id,
+                    title=m.title or "",
+                    existingChapterNumbers=sorted(
+                        list(dict.fromkeys(chapters_by_manga.get(m.id, []))),
+                        key=lambda x: float(x) if x.replace(".", "", 1).isdigit() else 999999.0,
+                    ),
+                )
+                for m in mangas
+            ]
+    except Exception:
+        existing_works = []
+
+    suggested_manga_id = find_suggested_manga_id(preview.title, existing_works)
+
+    return {
+        "supported": True,
+        "provider": preview.provider,
+        "mangaId": preview.manga_id,
+        "title": preview.title,
+        "coverUrl": preview.cover_url,
+        "chapters": [c.model_dump() for c in preview.chapters],
+        "existingWorks": [m.model_dump() for m in existing_works],
+        "suggestedMangaId": suggested_manga_id,
+    }
 
 
 @app.post("/api/scraper/start")
