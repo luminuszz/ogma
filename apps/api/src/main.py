@@ -513,7 +513,7 @@ async def scraper_preview(req: ScraperPreviewRequest):
                     id=m.id,
                     title=m.title or "",
                     existingChapterNumbers=sorted(
-                        list(dict.fromkeys(chapters_by_manga.get(m.id, []))),
+                        dict.fromkeys(chapters_by_manga.get(m.id, [])),
                         key=lambda x: float(x) if x.replace(".", "", 1).isdigit() else 999999.0,
                     ),
                 )
@@ -543,16 +543,15 @@ async def scraper_start(req: ScraperStartRequest):
         raise HTTPException(status_code=400, detail="Provedor inválido.")
 
     async with AsyncSessionLocal() as session:
-        # 1. Ensure Manga exists
+        # 1. Ensure Manga exists. If it exists, PRESERVE its existing title!
         manga_res = await session.execute(select(Manga).where(Manga.id == req.mangaId))
         manga_obj = manga_res.scalar_one_or_none()
         if not manga_obj:
             manga_obj = Manga(id=req.mangaId, title=req.title)
             session.add(manga_obj)
-        else:
-            manga_obj.title = req.title
+        # do NOT overwrite manga_obj.title when linking to an existing manga
 
-        # 2. Ensure Chapters exist
+        # 2. Ensure Chapters exist and point to req.mangaId
         for ch in req.chapters:
             ch_res = await session.execute(
                 select(Chapter).where(Chapter.id == ch.id)
@@ -568,6 +567,7 @@ async def scraper_start(req: ScraperStartRequest):
                 )
                 session.add(chapter_obj)
             else:
+                chapter_obj.manga_id = req.mangaId
                 chapter_obj.status = TranslationStatus.PROCESSING
 
         await session.commit()
