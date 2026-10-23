@@ -64,11 +64,12 @@ async def translate_page_image(image_bytes: bytes, source_lang: str = "ENG") -> 
         },
         "render": {
             "direction": "horizontal",
-            "no_hyphenation": True,
-            "font_size_offset": 0,
-            "font_size_minimum": 15,
+            "alignment": "center",
+            "no_hyphenation": False,
+            "font_size_offset": -1,
+            "font_size_minimum": 12,
         },
-        "detector": {"unclip_ratio": 2.5},
+        "detector": {"unclip_ratio": 2.4},
     }
 
     files = {"image": ("page.png", image_bytes, "image/png")}

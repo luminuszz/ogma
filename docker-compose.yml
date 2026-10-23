@@ -62,6 +62,7 @@ services:
       - ./apps/api/patch/config_gpt.py:/app/manga_translator/translators/config_gpt.py:ro
       - ./apps/api/patch/custom_openai.py:/app/manga_translator/translators/custom_openai.py:ro
       - ./apps/api/patch/translators_init.py:/app/manga_translator/translators/__init__.py:ro
+      - ./apps/api/patch/rendering_init.py:/app/manga_translator/rendering/__init__.py:ro
       - ./apps/api/worker/share.py:/app/manga_translator/mode/share.py
       - ./apps/api/worker/sent_data_internal.py:/app/server/sent_data_internal.py
       - ogma_data:/app/result
