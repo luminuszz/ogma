@@ -1,6 +1,6 @@
 import toast from "react-hot-toast";
 import { Link } from 'react-router-dom';
-import { Trash2, Loader2, RotateCw } from 'lucide-react';
+import { Trash2, Loader2, RotateCw, Clock } from 'lucide-react';
 import { useDeleteChapter, useRetryChapter } from '@/hooks/useManga';
 
 interface LibraryCardProps {
@@ -40,19 +40,24 @@ export const LibraryCard = ({ id, chapter, downloaded, total, status }: LibraryC
   };
 
   const isError = status === 'error';
-  // Note: if status is processing and downloaded < total, it will show "Traduzindo..."
-  const isActuallyTranslating = (total === 0 || downloaded < total) && status !== 'error';
+  const isPending = status === 'pending';
+  const isProcessing = status === 'processing' && (total === 0 || downloaded < total);
   const progressPercent = total > 0 ? Math.round((downloaded / total) * 100) : 0;
 
   return (
-    <div className={`w-full h-20 bg-base rounded-2xl px-6 flex justify-between items-center border ${isActuallyTranslating ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--color-primary),0.1)]' : isError ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-panel-light hover:border-primary/50'} transition-colors`}>
+    <div className={`w-full h-20 bg-base rounded-2xl px-6 flex justify-between items-center border ${isProcessing ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--color-primary),0.1)]' : isPending ? 'border-panel-light' : isError ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-panel-light hover:border-primary/50'} transition-colors`}>
       <div className="flex gap-6 items-center">
         <span className="text-foreground-muted font-bold text-lg">Ch. {chapter}</span>
         <div className="flex flex-col gap-1">
-          {isActuallyTranslating ? (
+          {isProcessing ? (
             <div className="flex items-center gap-2 text-primary text-sm font-medium">
               <Loader2 size={14} className="animate-spin" />
-              <span>Traduzindo... {total > 0 ? `${progressPercent}%` : 'Iniciando'}</span>
+              <span>Traduzindo... {total > 0 ? `${progressPercent}% (${downloaded}/${total})` : 'Iniciando'}</span>
+            </div>
+          ) : isPending ? (
+            <div className="flex items-center gap-2 text-foreground-muted text-sm font-medium">
+              <Clock size={14} />
+              <span>Na fila de espera</span>
             </div>
           ) : isError ? (
             <div className="flex items-center gap-2 text-red-500 text-sm font-medium">

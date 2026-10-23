@@ -94,7 +94,7 @@ async def test_scraper_start_links_to_existing_manga_without_overwriting_title()
     chapter = mock_db.chapters["valirscans:the-counts-secret-maid:101"]
     assert chapter.manga_id == "lycantoons:a-empregada-secreta-do-conde"
     assert chapter.chapter_number == "101"
-    assert chapter.status == TranslationStatus.PROCESSING
+    assert chapter.status == TranslationStatus.PENDING
 
     # Verify ARQ was called with forceTranslate=True
     mock_redis.enqueue_job.assert_awaited_once_with(
@@ -179,4 +179,4 @@ async def test_scraper_start_updates_existing_chapter_association():
 
     assert resp.status_code == 200
     assert existing_chapter.manga_id == "manga:target"
-    assert existing_chapter.status == TranslationStatus.PROCESSING
+    assert existing_chapter.status == TranslationStatus.PENDING

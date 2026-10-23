@@ -568,12 +568,12 @@ async def scraper_start(req: ScraperStartRequest):
                     manga_id=req.mangaId,
                     chapter_number=str(ch.number),
                     total_pages=0,
-                    status=TranslationStatus.PROCESSING,
+                    status=TranslationStatus.PENDING,
                 )
                 session.add(chapter_obj)
             else:
                 chapter_obj.manga_id = req.mangaId
-                chapter_obj.status = TranslationStatus.PROCESSING
+                chapter_obj.status = TranslationStatus.PENDING
 
         await session.commit()
 
