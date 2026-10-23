@@ -27,8 +27,10 @@ class ProviderRegistry:
 _global_registry = ProviderRegistry()
 
 from src.scrapers.providers.lycantoons import LycantoonsProvider
+from src.scrapers.providers.valirscans import ValirScansProvider
 
 _global_registry.register(LycantoonsProvider())
+_global_registry.register(ValirScansProvider())
 
 
 def get_registry() -> ProviderRegistry:
