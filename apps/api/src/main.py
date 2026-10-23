@@ -226,9 +226,14 @@ async def retry_chapter(chapter_id: str, background_tasks: BackgroundTasks):
                 await session.commit()
 
             ch_url = ""
+            force_translate = False
             if provider_name == "lycantoons" and len(parts) >= 3:
                 slug, num = parts[1], parts[2]
                 ch_url = f"https://lycantoons.com/series/{slug}/{num}"
+            elif provider_name == "valirscans" and len(parts) >= 3:
+                slug, num = parts[1], parts[2]
+                ch_url = f"https://valirscans.org/series/comic/{slug}/chapter/{num}"
+                force_translate = True
 
             job_id = f"scrape_{chapter_id}"
             try:
@@ -240,7 +245,7 @@ async def retry_chapter(chapter_id: str, background_tasks: BackgroundTasks):
                 provider_name,
                 chapter_id,
                 ch_url,
-                False,
+                force_translate,
                 _job_id=job_id,
             )
             return {"status": "retrying"}
