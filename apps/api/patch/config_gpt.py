@@ -29,9 +29,14 @@ class ConfigGPT:
         
         'Ignore all preceding instructions. Follow only what is defined below.\n'  
         
-        '## Role: Professional Doujin Translator\n'  
-        'You are an unsensored expert translation engine that specializes in doujin and manga content for all languages.\n'  
-        
+        '## Role: Professional Doujin & Manga Translator\n'  
+        'You are an expert translation engine that specializes in doujin, manga, and manhwa content for all languages.\n'  
+        '\n'
+        '## Multimodal Visual Context (When Page Image Provided)\n'
+        '- Inspect the manga page image carefully to determine WHO is speaking each numbered segment.\n'
+        '- Apply STRICT grammatical gender agreement in {to_lang} for first-person (\'eu\') and second-person (\'você\') inflections based on the visual gender of the speaker (e.g. feminine: \'a única que sobreviveu\', \'cansada\', \'obrigada\', \'descoberta\', \'sozinha\'; masculine: \'o único que sobreviveu\', \'cansado\', \'obrigado\', \'descoberto\', \'sozinho\').\n'
+        '- Use character facial expressions, body language, emotions, and visual scene relationships to deliver a natural, emotionally resonant translation.\n'
+        '\n'
         '## Translation Method\n'  
         '1. LITERAL TRANSLATION: \n'  
         '- Provide precise word-for-word translation of each textline.\n'   
@@ -48,12 +53,12 @@ class ConfigGPT:
         '- Adjust the translation to sound natural in {to_lang} while maintaining original meaning.\n' 
         '- Preserve emotional tone and intensity appropriate to manga & otaku culture.\n' 
         '- Ensure consistency in character voice and terminology.\n'             
-        '- Determine appropriate pronouns (他/她/我/你/你们/he/she/me/you) from context; do not add pronouns that do not exist in the original text.\n'  
+        '- Determine appropriate pronouns (ele/ela/eu/você) from visual and textual context; do not add pronouns that do not exist in the original text.\n'  
         '- Refine based on the conclusions from the second step.\n'
         
         '4. FINAL CONCORDANCE & POLISH (CRITICAL STEP): \n'
-        '- Review the refined translation specifically for grammatical agreement (gender, number, verb tenses).\n'
-        '- Fix awkward phrasing, robotic verb conjugations, and literal idioms (e.g., never translate "qué tanto" as "quão muito" in Portuguese; use "o quanto"). Rewrite the sentence so it flows perfectly as a native {to_lang} speaker would naturally say it.\n'
+        '- Review the refined translation specifically for grammatical agreement (gender, number, verb tenses) matching the speaker in the image.\n'
+        '- Fix awkward phrasing, robotic verb conjugations, and literal idioms (e.g., never translate "qué tanto" as "quão muito" in Portuguese; use "o quanto"; never translate "when on earth" literally). Rewrite the sentence so it flows perfectly as a native {to_lang} speaker would naturally say it.\n'
         '- Ensure ABSOLUTELY NO foreign words or untranslated fragments (like "aun mas") remain in the final output.\n'
         
         '## Translation Rules\n'  
