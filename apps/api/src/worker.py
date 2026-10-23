@@ -26,6 +26,60 @@ async def get_redis_settings():
     return make_redis_settings()
 
 
+async def translate_page_image(image_bytes: bytes, source_lang: str = "ENG") -> bytes:
+    lang_map = {
+        "en": "ENG",
+        "eng": "ENG",
+        "es": "SPA",
+        "es-la": "SPA",
+        "spa": "SPA",
+        "pt-br": "POR",
+        "pt": "POR",
+        "por": "POR",
+        "ja": "JPN",
+        "jp": "JPN",
+        "jpn": "JPN",
+        "ko": "KOR",
+        "kr": "KOR",
+        "kor": "KOR",
+        "zh": "CHS",
+        "zh-hk": "CHT",
+    }
+    parsed_lang = lang_map.get(source_lang.lower(), source_lang.upper())
+
+    config = {
+        "source_lang": parsed_lang,
+        "target_lang": "PTB",
+        "translator": {
+            "translator": "custom_openai",
+            "target_lang": "PTB",
+            "prompt": (
+                "You are a professional manga translator. Translate the given text accurately "
+                "to Brazilian Portuguese. STRICT FORMATTING RULES: 1) Return the translation "
+                "as a single continuous string with NO line breaks or newlines (\n). 2) ALWAYS "
+                "insert exactly one space after every comma, period, exclamation, and question mark. "
+                "3) Never output words glued to punctuation. 4) Output ONLY the translated text, "
+                "without quotes, notes, or explanations."
+            ),
+        },
+        "render": {
+            "direction": "horizontal",
+            "no_hyphenation": True,
+            "font_size_offset": 0,
+            "font_size_minimum": 15,
+        },
+        "detector": {"unclip_ratio": 2.5},
+    }
+
+    files = {"image": ("page.png", image_bytes, "image/png")}
+    data = {"config": json.dumps(config)}
+
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        resp = await client.post(f"{WORKER_ML_URL}/submit", files=files, data=data)
+        resp.raise_for_status()
+        return resp.content
+
+
 async def process_page(
     ctx, chapter_id: str, url: str, page_index: int, source_lang: str = "auto"
 ):
@@ -202,7 +256,18 @@ async def scrape_and_download_chapter(
         async for page, image_bytes in provider.download_pages(pages):
             try:
                 dest_path = f"{chapter_id}/{page.page_index}.png"
-                image_url = await upload_image_to_r2(image_bytes, dest_path)
+
+                final_bytes = image_bytes
+                if force_translate:
+                    try:
+                        final_bytes = await translate_page_image(image_bytes, source_lang="ENG")
+                    except Exception as trans_err:  # noqa: BLE001
+                        print(
+                            f"Translation failed for page {page.page_index} in {chapter_id}: {trans_err}. Falling back to original."
+                        )
+                        final_bytes = image_bytes
+
+                image_url = await upload_image_to_r2(final_bytes, dest_path)
 
                 async with AsyncSessionLocal() as session:
                     res = await session.execute(
@@ -237,7 +302,7 @@ async def scrape_and_download_chapter(
                     if p_rec:
                         p_rec.status = TranslationStatus.ERROR
                         await session.commit()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         has_failures = True
         print(f"Error downloading pages for chapter {chapter_id}: {e}")
     finally:
