@@ -158,121 +158,125 @@ async def scrape_and_download_chapter(
     chapter_url: str,
     force_translate: bool = False,
 ):
-    registry = get_registry()
-    provider = registry.get_provider(provider_name)
-    if not provider:
-        raise ValueError(f"Provider {provider_name} not found.")
-
-    # 1. Extract pages using the provider
     try:
+        registry = get_registry()
+        provider = registry.get_provider(provider_name)
+        if not provider:
+            raise ValueError(f"Provider {provider_name} not found.")
+
+        # 1. Extract pages using the provider
         pages = await provider.extract_chapter_pages(chapter_url)
         if not pages:
             raise ValueError(f"No pages extracted for chapter {chapter_url}")
-    except Exception as e:
-        print(f"Error extracting pages for chapter {chapter_id}: {e}")
+
         async with AsyncSessionLocal() as session:
             result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
             chapter_obj = result.scalar_one_or_none()
             if chapter_obj:
-                chapter_obj.status = TranslationStatus.ERROR
-                await session.commit()
-        raise
+                chapter_obj.total_pages = len(pages)
+                chapter_obj.status = TranslationStatus.PROCESSING
 
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
-        chapter_obj = result.scalar_one_or_none()
-        if chapter_obj:
-            chapter_obj.total_pages = len(pages)
-            chapter_obj.status = TranslationStatus.PROCESSING
-
-        # Prepare Page records
-        for page in pages:
-            existing_page = await session.execute(
-                select(Page).where(
-                    Page.chapter_id == chapter_id, Page.page_index == page.page_index
-                )
-            )
-            page_obj = existing_page.scalar_one_or_none()
-            if not page_obj:
-                session.add(
-                    Page(
-                        chapter_id=chapter_id,
-                        page_index=page.page_index,
-                        status=TranslationStatus.PENDING,
+            # Prepare Page records
+            for page in pages:
+                existing_page = await session.execute(
+                    select(Page).where(
+                        Page.chapter_id == chapter_id, Page.page_index == page.page_index
                     )
                 )
-
-        await session.commit()
-
-    # 2. Download and upload each image with provider context
-    has_failures = False
-    r = await redis.from_url(REDIS_URL)
-    try:
-        async for page, image_bytes in provider.download_pages(pages):
-            try:
-                dest_path = f"{chapter_id}/{page.page_index}.png"
-
-                final_bytes = image_bytes
-                if force_translate:
-                    try:
-                        final_bytes = await translate_page_image(image_bytes, source_lang="ENG")
-                    except Exception as trans_err:  # noqa: BLE001
-                        has_failures = True
-                        print(
-                            f"Translation failed for page {page.page_index} in {chapter_id}: {trans_err}. Falling back to original."
-                        )
-                        final_bytes = image_bytes
-
-                image_url = await upload_image_to_r2(final_bytes, dest_path)
-
-                async with AsyncSessionLocal() as session:
-                    res = await session.execute(
-                        select(Page).where(
-                            Page.chapter_id == chapter_id,
-                            Page.page_index == page.page_index,
+                page_obj = existing_page.scalar_one_or_none()
+                if not page_obj:
+                    session.add(
+                        Page(
+                            chapter_id=chapter_id,
+                            page_index=page.page_index,
+                            status=TranslationStatus.PENDING,
                         )
                     )
-                    page_record = res.scalar_one_or_none()
-                    if page_record:
-                        page_record.status = TranslationStatus.DONE
-                        page_record.image_url = image_url
-                        await session.commit()
 
-                # Publish SSE progress update
-                await r.publish(
-                    f"chapter:{chapter_id}",
-                    json.dumps({"page_index": page.page_index, "url": image_url}),
-                )
-
-            except Exception as e:  # noqa: BLE001
-                has_failures = True
-                print(f"Error processing page {page.page_index} for {chapter_id}: {e}")
-                async with AsyncSessionLocal() as session:
-                    res = await session.execute(
-                        select(Page).where(
-                            Page.chapter_id == chapter_id,
-                            Page.page_index == page.page_index,
-                        )
-                    )
-                    p_rec = res.scalar_one_or_none()
-                    if p_rec:
-                        p_rec.status = TranslationStatus.ERROR
-                        await session.commit()
-    except Exception as e:  # noqa: BLE001
-        has_failures = True
-        print(f"Error downloading pages for chapter {chapter_id}: {e}")
-    finally:
-        await r.aclose()
-
-    # 3. Mark Chapter as DONE or ERROR
-    async with AsyncSessionLocal() as session:
-        ch_res = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
-        chapter_obj = ch_res.scalar_one_or_none()
-        if chapter_obj:
-            chapter_obj.status = (
-                TranslationStatus.ERROR if has_failures else TranslationStatus.DONE
-            )
             await session.commit()
+
+        # 2. Download and upload each image with provider context
+        has_failures = False
+        r = await redis.from_url(REDIS_URL)
+        try:
+            async for page, image_bytes in provider.download_pages(pages):
+                try:
+                    dest_path = f"{chapter_id}/{page.page_index}.png"
+
+                    final_bytes = image_bytes
+                    if force_translate:
+                        try:
+                            final_bytes = await translate_page_image(image_bytes, source_lang="ENG")
+                        except Exception as trans_err:  # noqa: BLE001
+                            has_failures = True
+                            print(
+                                f"Translation failed for page {page.page_index} in {chapter_id}: {trans_err}. Falling back to original."
+                            )
+                            final_bytes = image_bytes
+
+                    image_url = await upload_image_to_r2(final_bytes, dest_path)
+
+                    async with AsyncSessionLocal() as session:
+                        res = await session.execute(
+                            select(Page).where(
+                                Page.chapter_id == chapter_id,
+                                Page.page_index == page.page_index,
+                            )
+                        )
+                        page_record = res.scalar_one_or_none()
+                        if page_record:
+                            page_record.status = TranslationStatus.DONE
+                            page_record.image_url = image_url
+                            await session.commit()
+
+                    # Publish SSE progress update
+                    await r.publish(
+                        f"chapter:{chapter_id}",
+                        json.dumps({"page_index": page.page_index, "url": image_url}),
+                    )
+
+                except Exception as e:  # noqa: BLE001
+                    has_failures = True
+                    print(f"Error processing page {page.page_index} for {chapter_id}: {e}")
+                    async with AsyncSessionLocal() as session:
+                        res = await session.execute(
+                            select(Page).where(
+                                Page.chapter_id == chapter_id,
+                                Page.page_index == page.page_index,
+                            )
+                        )
+                        p_rec = res.scalar_one_or_none()
+                        if p_rec:
+                            p_rec.status = TranslationStatus.ERROR
+                            await session.commit()
+        except Exception as e:  # noqa: BLE001
+            has_failures = True
+            print(f"Error downloading pages for chapter {chapter_id}: {e}")
+        finally:
+            await r.aclose()
+
+        # 3. Mark Chapter as DONE or ERROR
+        async with AsyncSessionLocal() as session:
+            ch_res = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+            chapter_obj = ch_res.scalar_one_or_none()
+            if chapter_obj:
+                chapter_obj.status = (
+                    TranslationStatus.ERROR if has_failures else TranslationStatus.DONE
+                )
+                await session.commit()
+
+    except Exception as e:
+        print(f"Error executing scrape_and_download_chapter for {chapter_id}: {e}")
+        try:
+            async with AsyncSessionLocal() as session:
+                res = await session.execute(select(Chapter).where(Chapter.id == chapter_id))
+                ch = res.scalar_one_or_none()
+                if ch and ch.status != TranslationStatus.DONE:
+                    ch.status = TranslationStatus.ERROR
+                    await session.commit()
+        except Exception as db_err:
+            print(f"Failed to update chapter {chapter_id} to ERROR status: {db_err}")
+        raise
 
 
 class WorkerSettings:
