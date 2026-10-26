@@ -76,23 +76,16 @@ async def test_scrape_and_download_chapter_success():
                 return obj
         return None
 
-    execute_call_count = 0
-
     async def mock_execute(statement, *args, **kwargs):
-        nonlocal execute_call_count
-        execute_call_count += 1
-        if execute_call_count == 1:
+        stmt_str = str(statement)
+        if "chapters" in stmt_str:
             return make_scalar_res(chapter_record)
-        elif execute_call_count == 2:
-            return make_scalar_res(page_1_record)
-        elif execute_call_count == 3:
-            return make_scalar_res(page_2_record)
-        elif execute_call_count == 4:
-            return make_scalar_res(page_1_record)
-        elif execute_call_count == 5:
-            return make_scalar_res(get_page_2())
-        elif execute_call_count == 6:
-            return make_scalar_res(chapter_record)
+        elif "pages" in stmt_str:
+            p_idx = statement.compile().params.get("page_index_1")
+            if p_idx == 1:
+                return make_scalar_res(page_1_record)
+            elif p_idx == 2:
+                return make_scalar_res(get_page_2())
         return make_scalar_res(None)
 
     mock_session.execute = AsyncMock(side_effect=mock_execute)
@@ -197,17 +190,12 @@ async def test_scrape_and_download_chapter_page_error():
         res.scalar_one_or_none.return_value = val
         return res
 
-    execute_call_count = 0
-
     async def mock_execute(statement, *args, **kwargs):
-        nonlocal execute_call_count
-        execute_call_count += 1
-        if execute_call_count == 1:
+        stmt_str = str(statement)
+        if "chapters" in stmt_str:
             return make_scalar_res(chapter_record)
-        elif execute_call_count in (2, 3):
+        elif "pages" in stmt_str:
             return make_scalar_res(page_record)
-        elif execute_call_count == 4:
-            return make_scalar_res(chapter_record)
         return make_scalar_res(None)
 
     mock_session.execute = AsyncMock(side_effect=mock_execute)

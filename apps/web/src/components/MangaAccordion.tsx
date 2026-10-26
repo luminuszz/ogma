@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { LibraryCard } from './LibraryCard';
 
 interface MangaAccordionProps {
@@ -9,6 +9,7 @@ interface MangaAccordionProps {
 
 export const MangaAccordion = ({ mangaTitle, chapters }: MangaAccordionProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  const isProcessing = chapters?.some((item) => item.status === 'processing') ?? false;
 
   return (
     <div className="flex flex-col border border-panel-light rounded-2xl overflow-hidden shadow-sm">
@@ -21,6 +22,16 @@ export const MangaAccordion = ({ mangaTitle, chapters }: MangaAccordionProps) =>
           <span className="text-sm font-medium text-foreground-muted bg-panel px-3 py-1 rounded-full">
             {chapters.length} {chapters.length === 1 ? 'capítulo' : 'capítulos'}
           </span>
+          {isProcessing && (
+            <span 
+              role="status"
+              aria-label="Capítulo em processamento"
+              className="text-xs text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 animate-pulse font-medium"
+            >
+              <Loader2 size={12} className="animate-spin" />
+              <span>Processando...</span>
+            </span>
+          )}
         </div>
         <div className={`text-foreground-muted bg-panel/50 p-2 rounded-full transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
           <ChevronDown size={20} />

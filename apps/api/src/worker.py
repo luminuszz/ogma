@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 
@@ -19,6 +20,7 @@ def make_redis_settings(dsn: str = REDIS_URL) -> RedisSettings:
     settings = RedisSettings.from_dsn(dsn)
     settings.conn_retries = 10
     settings.retry_on_timeout = True
+    settings.conn_timeout = 10
     return settings
 
 
@@ -72,15 +74,27 @@ async def translate_page_image(image_bytes: bytes, source_lang: str = "ENG") -> 
         "detector": {"unclip_ratio": 2.4},
     }
 
-    files = {"image": ("page.png", image_bytes, "image/png")}
-    data = {"config": json.dumps(config)}
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            files = {"image": ("page.png", image_bytes, "image/png")}
+            data = {"config": json.dumps(config)}
 
-    async with httpx.AsyncClient(timeout=300.0) as client:
-        resp = await client.post(
-            f"{WORKER_ML_URL}/translate/with-form/image", files=files, data=data
-        )
-        resp.raise_for_status()
-        return resp.content
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                resp = await client.post(
+                    f"{WORKER_ML_URL}/translate/with-form/image", files=files, data=data
+                )
+                resp.raise_for_status()
+                return resp.content
+        except Exception as e:
+            if attempt == max_retries:
+                print(f"Translation failed after {max_retries} attempts: {e}")
+                raise
+            backoff = 2 * attempt
+            print(
+                f"Translation attempt {attempt} failed ({e}). Retrying in {backoff}s..."
+            )
+            await asyncio.sleep(backoff)
 
 
 async def process_page(
@@ -130,9 +144,22 @@ async def process_page(
                         chapter_obj.status = TranslationStatus.DONE
                         await session.commit()
 
-        r = await redis.from_url(REDIS_URL)
-        await r.publish(f"chapter:{chapter_id}", json.dumps({"page_index": page_index, "url": image_url}))
-        await r.aclose()
+        r = ctx.get("redis") if ctx else None
+        should_close_redis = False
+        if r is None:
+            r = await redis.from_url(
+                REDIS_URL,
+                socket_keepalive=True,
+                health_check_interval=30,
+                retry_on_timeout=True,
+            )
+            should_close_redis = True
+
+        try:
+            await r.publish(f"chapter:{chapter_id}", json.dumps({"page_index": page_index, "url": image_url}))
+        finally:
+            if should_close_redis:
+                await r.aclose()
 
         return {"status": "ok", "url": image_url}
 
@@ -197,10 +224,48 @@ async def scrape_and_download_chapter(
 
         # 2. Download and upload each image with provider context
         has_failures = False
-        r = await redis.from_url(REDIS_URL)
+        r = ctx.get("redis") if ctx else None
+        should_close_redis = False
+        if r is None:
+            r = await redis.from_url(
+                REDIS_URL,
+                socket_keepalive=True,
+                health_check_interval=30,
+                retry_on_timeout=True,
+            )
+            should_close_redis = True
+
         try:
             async for page, image_bytes in provider.download_pages(pages):
                 try:
+                    # Checkpoint: verify if page is already completed
+                    async with AsyncSessionLocal() as session:
+                        res = await session.execute(
+                            select(Page).where(
+                                Page.chapter_id == chapter_id,
+                                Page.page_index == page.page_index,
+                            )
+                        )
+                        existing_page = res.scalar_one_or_none()
+                        if (
+                            existing_page
+                            and existing_page.status == TranslationStatus.DONE
+                            and existing_page.image_url
+                        ):
+                            print(
+                                f"Page {page.page_index} for chapter {chapter_id} already completed. Skipping."
+                            )
+                            await r.publish(
+                                f"chapter:{chapter_id}",
+                                json.dumps(
+                                    {
+                                        "page_index": page.page_index,
+                                        "url": existing_page.image_url,
+                                    }
+                                ),
+                            )
+                            continue
+
                     dest_path = f"{chapter_id}/{page.page_index}.png"
 
                     final_bytes = image_bytes
@@ -253,7 +318,8 @@ async def scrape_and_download_chapter(
             has_failures = True
             print(f"Error downloading pages for chapter {chapter_id}: {e}")
         finally:
-            await r.aclose()
+            if should_close_redis:
+                await r.aclose()
 
         # 3. Mark Chapter as DONE or ERROR
         async with AsyncSessionLocal() as session:
@@ -279,8 +345,24 @@ async def scrape_and_download_chapter(
         raise
 
 
+async def startup(ctx):
+    r = ctx.get("redis")
+    if r:
+        if hasattr(r, "connection_pool") and hasattr(r.connection_pool, "connection_kwargs"):
+            r.connection_pool.connection_kwargs.update(
+                socket_keepalive=True,
+                health_check_interval=30,
+                retry_on_timeout=True,
+            )
+        keys = await r.keys("arq:in-progress:*")
+        if keys:
+            await r.delete(*keys)
+            print(f"Purged {len(keys)} orphan in-progress keys on startup: {keys}")
+
+
 class WorkerSettings:
     functions: list = [process_page, scrape_and_download_chapter]  # noqa: RUF012
     max_jobs = 1
-    job_timeout = 3600
+    job_timeout = 600
     redis_settings = make_redis_settings()
+    on_startup = startup

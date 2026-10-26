@@ -28,6 +28,14 @@ redis_pool = None
 async def startup():
     global redis_pool
     redis_pool = await create_pool(await get_redis_settings())
+    if hasattr(redis_pool, "connection_pool") and hasattr(
+        redis_pool.connection_pool, "connection_kwargs"
+    ):
+        redis_pool.connection_pool.connection_kwargs.update(
+            socket_keepalive=True,
+            health_check_interval=30,
+            retry_on_timeout=True,
+        )
 
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -35,7 +43,12 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 @app.get("/api/manga/{chapter_id}/stream")
 async def stream_chapter(chapter_id: str):
     async def event_generator():
-        r = await redis.from_url(REDIS_URL)
+        r = await redis.from_url(
+            REDIS_URL,
+            socket_keepalive=True,
+            health_check_interval=30,
+            retry_on_timeout=True,
+        )
         pubsub = r.pubsub()
         await pubsub.subscribe(f"chapter:{chapter_id}")
         try:
