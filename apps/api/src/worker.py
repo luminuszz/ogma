@@ -77,6 +77,7 @@ async def translate_page_image(image_bytes: bytes, source_lang: str = "ENG") -> 
             "font_size_minimum": 12,
         },
         "detector": {
+            "detector": "ctd",
             "unclip_ratio": 2.4,
             "box_threshold": 0.6,
             "text_threshold": 0.2,
@@ -360,6 +361,7 @@ async def warmup_manga_translator() -> None:
             "translator": {"translator": "none", "target_lang": "PTB"},
             "inpainter": {"inpainter": "lama_mpe"},
             "detector": {
+                "detector": "ctd",
                 "unclip_ratio": 2.4,
                 "box_threshold": 0.6,
                 "text_threshold": 0.2,

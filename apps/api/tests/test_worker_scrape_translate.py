@@ -166,6 +166,7 @@ async def test_translate_page_image_calls_ml_service():
     sent_config = json.loads(call_kwargs["data"]["config"])
     assert sent_config["inpainter"] == {"inpainter": "lama_mpe"}
     assert sent_config["detector"] == {
+        "detector": "ctd",
         "unclip_ratio": 2.4,
         "box_threshold": 0.6,
         "text_threshold": 0.2,
@@ -445,6 +446,7 @@ async def test_warmup_manga_translator_success():
     assert sent_config["translator"] == {"translator": "none", "target_lang": "PTB"}
     assert sent_config["inpainter"] == {"inpainter": "lama_mpe"}
     assert sent_config["detector"] == {
+        "detector": "ctd",
         "unclip_ratio": 2.4,
         "box_threshold": 0.6,
         "text_threshold": 0.2,
