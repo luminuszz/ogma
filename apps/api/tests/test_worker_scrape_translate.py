@@ -1,10 +1,17 @@
+import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 from src.db.models import Chapter, Page, TranslationStatus
 from src.scrapers.base import PageItem
-from src.worker import WorkerSettings, scrape_and_download_chapter, startup, translate_page_image
+from src.worker import (
+    WorkerSettings,
+    scrape_and_download_chapter,
+    startup,
+    translate_page_image,
+    warmup_manga_translator,
+)
 
 
 class MockSessionContext:
@@ -156,6 +163,13 @@ async def test_translate_page_image_calls_ml_service():
     assert "/translate/with-form/image" in call_args[0]
     assert "image" in call_kwargs["files"]
     assert "config" in call_kwargs["data"]
+    sent_config = json.loads(call_kwargs["data"]["config"])
+    assert sent_config["inpainter"] == {"inpainter": "lama_mpe"}
+    assert sent_config["detector"] == {
+        "unclip_ratio": 2.4,
+        "box_threshold": 0.6,
+        "text_threshold": 0.2,
+    }
 
 
 @pytest.mark.asyncio
@@ -401,3 +415,68 @@ async def test_main_startup_configures_redis_keepalive():
     assert mock_pool.connection_pool.connection_kwargs["socket_keepalive"] is True
     assert mock_pool.connection_pool.connection_kwargs["health_check_interval"] == 30
     assert mock_pool.connection_pool.connection_kwargs["retry_on_timeout"] is True
+
+
+@pytest.mark.asyncio
+async def test_warmup_manga_translator_success():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    class MockClientContext:
+        async def __aenter__(self):
+            return mock_client
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    with patch("httpx.AsyncClient", return_value=MockClientContext()):
+        await warmup_manga_translator()
+
+    mock_client.post.assert_called_once()
+    call_args, call_kwargs = mock_client.post.call_args
+    assert "/translate/with-form/image" in call_args[0]
+    assert "image" in call_kwargs["files"]
+    assert "config" in call_kwargs["data"]
+
+    sent_config = json.loads(call_kwargs["data"]["config"])
+    assert sent_config["translator"] == {"translator": "none", "target_lang": "PTB"}
+    assert sent_config["inpainter"] == {"inpainter": "lama_mpe"}
+    assert sent_config["detector"] == {
+        "unclip_ratio": 2.4,
+        "box_threshold": 0.6,
+        "text_threshold": 0.2,
+    }
+
+
+@pytest.mark.asyncio
+async def test_warmup_manga_translator_handles_error():
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(side_effect=RuntimeError("GPU warmup connection failure"))
+
+    class MockClientContext:
+        async def __aenter__(self):
+            return mock_client
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+
+    with patch("httpx.AsyncClient", return_value=MockClientContext()):
+        # Should not raise exception
+        await warmup_manga_translator()
+
+
+@pytest.mark.asyncio
+async def test_worker_startup_dispatches_warmup_task():
+    mock_redis = AsyncMock()
+    mock_redis.connection_pool = MagicMock()
+    mock_redis.connection_pool.connection_kwargs = {}
+    mock_redis.keys = AsyncMock(return_value=[])
+
+    with patch("src.worker.warmup_manga_translator", new=AsyncMock()) as mock_warmup:
+        await startup({"redis": mock_redis})
+        # Allow event loop to process task
+        await asyncio.sleep(0.01)
+        mock_warmup.assert_called_once()

@@ -110,6 +110,30 @@ class ConfigGPT:
                 "<|2|>너 괜찮아?\n"
                 "<|3|>이 녀석, 뭐야? 분위기 못 읽는 거야...?\n"
             )
+        ],
+        'Portuguese (Brazil)': [
+            (
+                '<|1|>恥ずかしい… 目立ちたくない… 私が消えたい…\n'
+                '<|2|>きみ… 大丈夫⁉\n'
+                '<|3|>なんだこいつ 空気読めて ないのか…？'
+            ),
+            (
+                '<|1|>Que vergonha... Não quero chamar atenção... Queria sumir...\n'
+                '<|2|>Você... tá bem⁉\n'
+                '<|3|>Quem é esse cara? Não sabe ler o clima...?'
+            )
+        ],
+        'Portuguese': [
+            (
+                '<|1|>恥ずかしい… 目立ちたくない… 私が消えたい…\n'
+                '<|2|>きみ… 大丈夫⁉\n'
+                '<|3|>なんだこいつ 空気読めて ないのか…？'
+            ),
+            (
+                '<|1|>Que vergonha... Não quero chamar atenção... Queria sumir...\n'
+                '<|2|>Você... tá bem⁉\n'
+                '<|3|>Quem é esse cara? Não sabe ler o clima...?'
+            )
         ]
     }
 
@@ -159,6 +183,38 @@ class ConfigGPT:
                     TextValue(ID=1,text="부끄러워... 눈에 띄고 싶지 않아... 나 숨고 싶어..."),
                     TextValue(ID=2,text="괜찮아?!"),
                     TextValue(ID=3,text="이 녀석, 뭐야? 분위기 못 읽는 거야...?")
+                ]
+            )
+        ],
+        'Portuguese (Brazil)': [
+            TranslationList(
+                TextList=[
+                    TextValue(ID=1, text="恥ずかしい… 目立ちたくない… 私が消えたい…"),
+                    TextValue(ID=2, text="きみ… 大丈夫⁉"),
+                    TextValue(ID=3, text="なんだこいつ 空気読めて ないのか…？")
+                ]
+            ),
+            TranslationList(
+                TextList=[
+                    TextValue(ID=1, text="Que vergonha... Não quero chamar atenção... Queria sumir..."),
+                    TextValue(ID=2, text="Você... tá bem⁉"),
+                    TextValue(ID=3, text="Quem é esse cara? Não sabe ler o clima...?")
+                ]
+            )
+        ],
+        'Portuguese': [
+            TranslationList(
+                TextList=[
+                    TextValue(ID=1, text="恥ずかしい… 目立ちたくない… 私が消えたい…"),
+                    TextValue(ID=2, text="きみ… 大丈夫⁉"),
+                    TextValue(ID=3, text="なんだこいつ 空気読めて ないのか…？")
+                ]
+            ),
+            TranslationList(
+                TextList=[
+                    TextValue(ID=1, text="Que vergonha... Não quero chamar atenção... Queria sumir..."),
+                    TextValue(ID=2, text="Você... tá bem⁉"),
+                    TextValue(ID=3, text="Quem é esse cara? Não sabe ler o clima...?")
                 ]
             )
         ]

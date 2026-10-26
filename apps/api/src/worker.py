@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 
@@ -14,6 +15,9 @@ from src.services.storage import upload_image_to_r2
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 WORKER_ML_URL = os.getenv("WORKER_ML_URL", "http://manga-translator:5003")
+MINIMAL_1X1_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+)
 
 
 def make_redis_settings(dsn: str = REDIS_URL) -> RedisSettings:
@@ -64,6 +68,7 @@ async def translate_page_image(image_bytes: bytes, source_lang: str = "ENG") -> 
                 "without quotes, notes, or explanations."
             ),
         },
+        "inpainter": {"inpainter": "lama_mpe"},
         "render": {
             "direction": "horizontal",
             "alignment": "center",
@@ -71,7 +76,11 @@ async def translate_page_image(image_bytes: bytes, source_lang: str = "ENG") -> 
             "font_size_offset": -1,
             "font_size_minimum": 12,
         },
-        "detector": {"unclip_ratio": 2.4},
+        "detector": {
+            "unclip_ratio": 2.4,
+            "box_threshold": 0.6,
+            "text_threshold": 0.2,
+        },
     }
 
     max_retries = 3
@@ -345,6 +354,32 @@ async def scrape_and_download_chapter(
         raise
 
 
+async def warmup_manga_translator() -> None:
+    try:
+        config = {
+            "translator": {"translator": "none", "target_lang": "PTB"},
+            "inpainter": {"inpainter": "lama_mpe"},
+            "detector": {
+                "unclip_ratio": 2.4,
+                "box_threshold": 0.6,
+                "text_threshold": 0.2,
+            },
+        }
+        files = {"image": ("warmup.png", MINIMAL_1X1_PNG, "image/png")}
+        data = {"config": json.dumps(config)}
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{WORKER_ML_URL}/translate/with-form/image",
+                files=files,
+                data=data,
+            )
+            resp.raise_for_status()
+        print("Translator GPU models pre-warmed successfully")
+    except Exception as e:
+        print(f"Warning: Failed to pre-warm translator GPU models: {e}")
+
+
 async def startup(ctx):
     r = ctx.get("redis")
     if r:
@@ -358,6 +393,8 @@ async def startup(ctx):
         if keys:
             await r.delete(*keys)
             print(f"Purged {len(keys)} orphan in-progress keys on startup: {keys}")
+
+    asyncio.create_task(warmup_manga_translator())
 
 
 class WorkerSettings:
