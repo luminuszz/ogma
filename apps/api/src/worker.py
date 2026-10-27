@@ -401,7 +401,7 @@ async def startup(ctx):
 
 class WorkerSettings:
     functions: list = [process_page, scrape_and_download_chapter]  # noqa: RUF012
-    max_jobs = 2
+    max_jobs = 3
     job_timeout = 600
     redis_settings = make_redis_settings()
     on_startup = startup
