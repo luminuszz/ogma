@@ -121,7 +121,7 @@ export function ScraperModal({ isOpen, onClose }: ScraperModalProps) {
         <form onSubmit={handleFetchPreview} className="flex gap-2">
           <input
             type="text"
-            placeholder="Cole a URL da obra (ex: LycanToons, Valir Scans, MangáDash)..."
+            placeholder="Cole a URL da obra (ex: LycanToons, Valir Scans, MangáDash, NexusToons)..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={isLoading || isStarting}

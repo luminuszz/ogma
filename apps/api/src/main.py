@@ -251,6 +251,12 @@ async def retry_chapter(chapter_id: str, background_tasks: BackgroundTasks):
                 slug, num = parts[1], parts[2]
                 ch_url = f"https://mangadash.net/capitulo/{slug}/{num}"
                 force_translate = False
+            elif provider_name == "nexustoons":
+                force_translate = False
+                if len(parts) >= 4 and parts[3].isdigit():
+                    ch_url = f"https://nexustoons.com/api/chapter/{parts[3]}"
+                elif len(parts) >= 3:
+                    ch_url = f"https://nexustoons.com/manga/{parts[1]}"
 
             job_id = f"scrape_{chapter_id}"
             try:

@@ -28,11 +28,13 @@ _global_registry = ProviderRegistry()
 
 from src.scrapers.providers.lycantoons import LycantoonsProvider
 from src.scrapers.providers.mangadash import MangadashProvider
+from src.scrapers.providers.nexustoons import NexusToonsProvider
 from src.scrapers.providers.valirscans import ValirScansProvider
 
 _global_registry.register(LycantoonsProvider())
 _global_registry.register(ValirScansProvider())
 _global_registry.register(MangadashProvider())
+_global_registry.register(NexusToonsProvider())
 
 
 def get_registry() -> ProviderRegistry:
