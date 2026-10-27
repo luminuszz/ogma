@@ -154,7 +154,7 @@ class MangadashProvider(BaseProvider):
                         else route.continue_()
                     ),
                 )
-                await page.goto(chapter_url, wait_until="domcontentloaded", timeout=30000)
+                await page.goto(chapter_url, wait_until="domcontentloaded", timeout=60000)
 
                 num_pages = await page.evaluate(
                     """async () => {
@@ -219,7 +219,7 @@ class MangadashProvider(BaseProvider):
                         else route.continue_()
                     ),
                 )
-                await page.goto(chapter_url, wait_until="domcontentloaded", timeout=30000)
+                await page.goto(chapter_url, wait_until="domcontentloaded", timeout=60000)
 
                 for p_item in pages:
                     if "#page=" in p_item.image_url:
