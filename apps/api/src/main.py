@@ -247,6 +247,10 @@ async def retry_chapter(chapter_id: str, background_tasks: BackgroundTasks):
                 slug, num = parts[1], parts[2]
                 ch_url = f"https://valirscans.org/series/comic/{slug}/chapter/{num}"
                 force_translate = True
+            elif provider_name == "mangadash" and len(parts) >= 3:
+                slug, num = parts[1], parts[2]
+                ch_url = f"https://mangadash.net/capitulo/{slug}/{num}"
+                force_translate = False
 
             job_id = f"scrape_{chapter_id}"
             try:
