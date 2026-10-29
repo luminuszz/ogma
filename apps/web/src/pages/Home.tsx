@@ -126,33 +126,6 @@ export function Home() {
     }
   };
 
-  // Real-time credits refresh on active chapters SSE events
-  const processingChapterIds = useMemo(() => {
-    if (!libraryData) return '';
-    return libraryData
-      .filter((item) => item.status === 'processing' || (item.total === 0 || item.downloaded < item.total))
-      .map((item) => item.id)
-      .sort()
-      .join(',');
-  }, [libraryData]);
-
-  useEffect(() => {
-    if (typeof EventSource === 'undefined' || !processingChapterIds) return;
-
-    const ids = processingChapterIds.split(',').filter(Boolean);
-    const eventSources = ids.map((id) => {
-      const es = new EventSource(`/api/manga/${id}/stream`);
-      es.onmessage = () => {
-        queryClient.invalidateQueries({ queryKey: ['openrouter-credits'] });
-      };
-      return es;
-    });
-
-    return () => {
-      eventSources.forEach((es) => es.close());
-    };
-  }, [processingChapterIds, queryClient]);
-
   // Invalidate credits whenever downloaded count increases during library polling
   const totalDownloaded = useMemo(() => {
     if (!libraryData) return 0;

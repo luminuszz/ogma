@@ -7,25 +7,33 @@ export const useLibrary = (disablePolling = false) => {
   return useQuery<LibraryManga[], Error>({
     queryKey: ['library'],
     queryFn: api.getLibrary,
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 1000 * 5, // 5 segundos
     refetchInterval: disablePolling ? false : (query) => {
       const data = query.state.data;
-      if (!data) return false;
-      const isTranslating = data.some(item => item.total === 0 || item.downloaded < item.total);
-      return isTranslating ? 3000 : false;
+      if (!data) return 5000;
+      const hasActive = data.some(item => item.status === 'processing' || item.status === 'pending');
+      return hasActive ? 2000 : 10000;
     }
   });
 };
 
 export const useStartDownload = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: api.startDownload,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+    },
   });
 };
 
 export const useStartBulkDownload = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: api.startBulkDownload,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+    },
   });
 };
 

@@ -396,6 +396,30 @@ async def startup(ctx):
             await r.delete(*keys)
             print(f"Purged {len(keys)} orphan in-progress keys on startup: {keys}")
 
+    # Recover interrupted chapters in database from previous worker run
+    try:
+        async with AsyncSessionLocal() as session:
+            res = await session.execute(
+                select(Chapter).where(Chapter.status == TranslationStatus.PROCESSING)
+            )
+            stuck_chapters = res.scalars().all()
+            if stuck_chapters:
+                for ch in stuck_chapters:
+                    ch.status = TranslationStatus.ERROR
+                    pages_res = await session.execute(
+                        select(Page).where(
+                            Page.chapter_id == ch.id, Page.status != TranslationStatus.DONE
+                        )
+                    )
+                    for p in pages_res.scalars().all():
+                        p.status = TranslationStatus.ERROR
+                await session.commit()
+                print(
+                    f"Reset {len(stuck_chapters)} orphan PROCESSING chapters to ERROR status on worker startup."
+                )
+    except Exception as e:
+        print(f"Warning: Failed to reset orphan PROCESSING chapters on startup: {e}")
+
     asyncio.create_task(warmup_manga_translator())
 
 

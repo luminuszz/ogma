@@ -29,7 +29,7 @@ class Chapter(Base):
 class Page(Base):
     __tablename__ = "pages"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    chapter_id = Column(String, ForeignKey("chapters.id"))
+    chapter_id = Column(String, ForeignKey("chapters.id"), index=True)
     page_index = Column(Integer)
     image_url = Column(String, nullable=True) # Cloudflare R2 URL
-    status = Column(Enum(TranslationStatus), default=TranslationStatus.PENDING)  # type: ignore
+    status = Column(Enum(TranslationStatus), default=TranslationStatus.PENDING, index=True)  # type: ignore

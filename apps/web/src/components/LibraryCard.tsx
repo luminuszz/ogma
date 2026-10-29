@@ -41,7 +41,7 @@ export const LibraryCard = ({ id, chapter, downloaded, total, status }: LibraryC
 
   const isError = status === 'error';
   const isPending = status === 'pending';
-  const isProcessing = status === 'processing' && (total === 0 || downloaded < total);
+  const isProcessing = status === 'processing';
   const progressPercent = total > 0 ? Math.round((downloaded / total) * 100) : 0;
   const remainingPages = Math.max(0, total - downloaded);
 
