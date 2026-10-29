@@ -16,13 +16,13 @@ describe('Scraper API Client', () => {
         chapters: []
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const res = await api.previewScraper('https://lycantoons.com/series/test');
-      expect(global.fetch).toHaveBeenCalledWith('/api/scraper/preview', expect.objectContaining({
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/scraper/preview', expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: 'https://lycantoons.com/series/test' })
@@ -53,10 +53,10 @@ describe('Scraper API Client', () => {
         suggestedMangaId: 'lycantoons:a-empregada-secreta-do-conde',
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const result = await api.previewScraper('https://valirscans.org/series/comic/the-counts-secret-maid');
       expect(result.existingWorks).toHaveLength(1);
@@ -66,19 +66,19 @@ describe('Scraper API Client', () => {
     });
 
     it('throws error with detail message on failed preview request', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({ detail: 'URL não suportada' }),
-      } as Response);
+      } as unknown as Response);
 
       await expect(api.previewScraper('https://invalid.com')).rejects.toThrow('URL não suportada');
     });
 
     it('throws default error message when json parsing fails on error', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => { throw new Error('invalid json'); },
-      } as Response);
+      } as unknown as Response);
 
       await expect(api.previewScraper('https://invalid.com')).rejects.toThrow('Falha ao buscar prévia da obra');
     });
@@ -98,13 +98,13 @@ describe('Scraper API Client', () => {
     it('calls startScraper with payload and returns status', async () => {
       const mockResponse = { status: 'queued', count: 1 };
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
-      } as Response);
+      } as unknown as Response);
 
       const res = await api.startScraper(payload);
-      expect(global.fetch).toHaveBeenCalledWith('/api/scraper/start', expect.objectContaining({
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/scraper/start', expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -113,19 +113,19 @@ describe('Scraper API Client', () => {
     });
 
     it('throws error with detail message on failed start request', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({ detail: 'Scraper failed to start' }),
-      } as Response);
+      } as unknown as Response);
 
       await expect(api.startScraper(payload)).rejects.toThrow('Scraper failed to start');
     });
 
     it('throws default error message when json parsing fails on error', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => { throw new Error('invalid json'); },
-      } as Response);
+      } as unknown as Response);
 
       await expect(api.startScraper(payload)).rejects.toThrow('Falha ao iniciar scraping');
     });

@@ -1,4 +1,12 @@
-export const ErrorCard = ({ error, onRetry }: { error: string; onRetry: () => void }) => (
+
+import React from 'react';
+
+export interface ErrorCardProps {
+  error: string;
+  onRetry: () => void;
+}
+
+export const ErrorCard: React.FC<ErrorCardProps> = ({ error, onRetry }) => (
   <div className="mt-10 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-center max-w-md">
     <p className="font-semibold mb-2">Erro</p>
     <p className="text-sm">{error}</p>
